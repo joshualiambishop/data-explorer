@@ -395,7 +395,13 @@ class ArrayViewerApp(widgets.QMainWindow):
         return self
 
     def on_new_array_added(self) -> None:
-        self.operation_panel.setVisible(len(self.docks) >= 2)
+        has_enough_data = len(self.get_original_docks()) >= 2
+        self.operation_panel.setEnabled(has_enough_data)
+        self.operation_panel.setToolTip(
+            "At least two arrays are required to perform operations"
+            if not has_enough_data
+            else ""
+        )
 
     def _remove_dock(self, dock: ArrayDock) -> None:
         self.docks.remove(dock)
