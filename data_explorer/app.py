@@ -223,23 +223,28 @@ class ArrayDock(widgets.QDockWidget):
         self.cmap_combo.addItems(COLOURMAPS)
         self.cmap_combo.currentTextChanged.connect(self.update_colormap)
 
+        colour_group = widgets.QGroupBox("Colour settings")
+        cg_layout = widgets.QHBoxLayout(colour_group)
+
+        cg_layout.addWidget(widgets.QLabel("Colormap:"))
+        cg_layout.addWidget(self.cmap_combo)
+        cg_layout.addWidget(widgets.QLabel("Min:"))
+        cg_layout.addWidget(self.vmin_spin)
+        cg_layout.addWidget(widgets.QLabel("Max:"))
+        cg_layout.addWidget(self.vmax_spin)
+
+        grid.addWidget(colour_group, 0, 0, 1, 4)
+
         self.reset_view_btn = widgets.QPushButton("Reset View")
         self.reset_view_btn.setToolTip("Reset pan/zoom to show the full image")
         self.reset_view_btn.clicked.connect(self.on_reset_view)
-
-        grid.addWidget(widgets.QLabel("Min:"), 0, 2)
-        grid.addWidget(self.vmin_spin, 0, 3)
-        grid.addWidget(widgets.QLabel("Max:"), 1, 2)
-        grid.addWidget(self.vmax_spin, 1, 3)
-        grid.addWidget(widgets.QLabel("Colormap:"), 0, 0)
-        grid.addWidget(self.cmap_combo, 0, 1)
         grid.addWidget(self.reset_view_btn, 1, 0)
 
         # Duplicate button
         if self.is_original:
             self.duplicate_button = widgets.QPushButton("Duplicate")
             self.duplicate_button.clicked.connect(self.on_duplicate_pressed)
-            grid.addWidget(self.duplicate_button, 2, 0, 1, 4)
+            grid.addWidget(self.duplicate_button, 1, 1, 1, 3)
 
         # Add grid to the layout
         parent_layout.addLayout(grid)
