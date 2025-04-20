@@ -32,31 +32,23 @@ THRESHOLD_OPERATIONS: Final[list[SimpleOperation]] = [
     SimpleOperation("Less than", "<", lambda a, b: a < b),
     SimpleOperation("Greater or equal to", ">=", lambda a, b: a >= b),
     SimpleOperation("Less or equal to", "<=", lambda a, b: a <= b),
-    SimpleOperation("Equal to", "==", lambda a, b: a <= b),
+    SimpleOperation("Equal to", "==", lambda a, b: a == b),
 ]
 
 
-class OperationDock(widgets.QDockWidget):
+class OperationPanel(widgets.QWidget):
     """
-    A fixed dock for creating new derived arrays through simple operations
+    A panel for creating new derived arrays through simple operations
     """
 
     def __init__(self, parent_app: "ArrayViewerApp") -> None:
-        super().__init__("Operations")
+        super().__init__()
         self.parent_app = parent_app
-        self.setFeatures(
-            widgets.QDockWidget.DockWidgetFeature.DockWidgetMovable
-        )  # No closing, no floating
 
-        self._init_ui()
-
-    def _init_ui(self) -> None:
-        self.main_widget = widgets.QWidget()
-        self.setWidget(self.main_widget)
-        layout = widgets.QVBoxLayout(self.main_widget)
+        layout = widgets.QVBoxLayout(self)
         # initial buttons panel
-        self.buttons_panel = widgets.QWidget()
-        btn_layout = widgets.QVBoxLayout(self.buttons_panel)
+        self.buttons_panel = widgets.QGroupBox(title="Array operations")
+        btn_layout = widgets.QHBoxLayout(self.buttons_panel)
         for operation in TWO_PIECE_OPERATIONS:
             btn = widgets.QPushButton(
                 f"Calculate {operation.description.lower()} of two arrays"
@@ -69,20 +61,19 @@ class OperationDock(widgets.QDockWidget):
 
         # form panel hidden until needed
         self.form_panel = widgets.QWidget()
-        form_layout = widgets.QGridLayout(self.form_panel)
+        form_layout = widgets.QHBoxLayout(self.form_panel)
         self.operator_desc_label = widgets.QLabel("")
-        self.operator_op_label = widgets.QLabel("")
-
         self.combo_a = widgets.QComboBox()
+        self.operator_op_label = widgets.QLabel("")
         self.combo_b = widgets.QComboBox()
-        form_layout.addWidget(self.operator_desc_label, 0, 0)
-        form_layout.addWidget(self.combo_a, 0, 1)
-        form_layout.addWidget(self.operator_op_label, 0, 2)
-        form_layout.addWidget(self.combo_b, 0, 3)
         self.create_btn = widgets.QPushButton("Create")
         self.cancel_btn = widgets.QPushButton("Cancel")
-        form_layout.addWidget(self.create_btn, 1, 0)
-        form_layout.addWidget(self.cancel_btn, 1, 3)
+        form_layout.addWidget(self.operator_desc_label)
+        form_layout.addWidget(self.combo_a)
+        form_layout.addWidget(self.operator_op_label)
+        form_layout.addWidget(self.combo_b)
+        form_layout.addWidget(self.create_btn)
+        form_layout.addWidget(self.cancel_btn)
         layout.addWidget(self.form_panel)
         self.form_panel.hide()
 
@@ -90,15 +81,14 @@ class OperationDock(widgets.QDockWidget):
         self.create_btn.clicked.connect(self._create)
 
     def _show_form(self, operation: SimpleOperation) -> None:
-        # populate dropdowns with current dock titles
+        # populate dropdowns with current original dock titles
         titles = [dock.get_title() for dock in self.parent_app.get_original_docks()]
         self.combo_a.clear()
         self.combo_a.addItems(titles)
         self.combo_b.clear()
         self.combo_b.addItems(titles)
-        self.operator_desc_label.setText(f"Create {operation.description.lower()}:")
-        if operation.operator is not None:
-            self.operator_op_label.setText(operation.operator)
+        self.operator_desc_label.setText(f"Create {operation.description.lower()}: ")
+        self.operator_op_label.setText(operation.operator or "")
         self.current_op = operation
         self.buttons_panel.hide()
         self.form_panel.show()
@@ -110,7 +100,6 @@ class OperationDock(widgets.QDockWidget):
     def _create(self) -> None:
         a_title = self.combo_a.currentText()
         b_title = self.combo_b.currentText()
-        # find arrays
         a_arr = next(
             d.get_array()
             for d in self.parent_app.get_original_docks()
@@ -121,12 +110,9 @@ class OperationDock(widgets.QDockWidget):
             for d in self.parent_app.get_original_docks()
             if d.get_title() == b_title
         )
-
-        self.parent_app._add_array(
-            array=self.current_op.calculation(a_arr, b_arr),
-            title=f"{a_title} {self.current_op.operator} {b_title}",
-            can_delete=True,
-        )
+        new_arr = self.current_op.calculation(a_arr, b_arr)
+        new_title = f"{a_title} {self.current_op.operator} {b_title}"
+        self.parent_app._add_array(array=new_arr, title=new_title, can_delete=True)
         self._reset()
 
 
@@ -354,8 +340,6 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.update_frames(0)
         self.timer = QTimer()
         self.timer.timeout.connect(self.advance_frame)
-        self.operation_dock = OperationDock(self)
-        self.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, self.operation_dock)
 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
@@ -445,6 +429,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.crosshair_cb.setToolTip("Show/hide the crosshair and value overlays")
         self.crosshair_cb.stateChanged.connect(self.toggle_crosshair_visbility)
 
+        control_layout = widgets.QVBoxLayout(self.central)
         control_row = widgets.QHBoxLayout()
         control_row.addWidget(widgets.QLabel("Frame:"))
         control_row.addWidget(self.slider)
@@ -454,7 +439,11 @@ class ArrayViewerApp(widgets.QMainWindow):
         control_row.addWidget(self.fps_spinner)
         control_row.addWidget(self.crosshair_cb)
 
-        layout.addLayout(control_row)
+        self.operation_panel = OperationPanel(self)
+
+        control_layout.addLayout(control_row)
+        control_layout.addWidget(self.operation_panel)
+        layout.addLayout(control_layout)
 
     def toggle_crosshair_visbility(self, state: Qt.CheckState) -> None:
         for dock in self.docks:
@@ -509,3 +498,16 @@ if __name__ == "__main__":
     b[0, 32, 62] = 20
     b[0, 0, 0] = -20
     launch_viewer([a, b], ["Random A", "Random B"])
+
+
+# To do list
+
+# Don't show arithmatic unless there are at least two arrays
+# leave it in main control panel, rather than a draggable dock
+#
+#
+# Lazy/Future Array Support
+
+# Accept either full np.ndarray or Callable[[frame], np.ndarray] via a FrameProvider descriptor.
+
+# Auto‑generate any extra parameter widgets at launch.
