@@ -429,7 +429,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.fps_spinner.setSuffix(" fps")
 
         self.crosshair_cb = widgets.QCheckBox("Crosshair")
-        self.crosshair_cb.setChecked(False)
+        self.crosshair_cb.setChecked(True)
         self.crosshair_cb.setToolTip("Show/hide the crosshair and value overlays")
         self.crosshair_cb.stateChanged.connect(self.toggle_crosshair_visbility)
 
