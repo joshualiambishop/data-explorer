@@ -2,7 +2,6 @@ import multiprocessing
 import sys
 from typing import Final, List, Optional, Sequence
 
-
 import numpy as np
 import pyqtgraph as pg
 import PySide6.QtWidgets as widgets
@@ -10,7 +9,6 @@ from PySide6.QtCore import QPointF, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QKeyEvent
 
 from data_explorer import primitives
-
 
 BORDER_COLOUR: Final[str] = "y"
 COLOURMAPS: Final[list[str]] = ["gray", "viridis", "plasma", "inferno", "magma"]
@@ -23,7 +21,6 @@ class ArrayDock(widgets.QDockWidget):
     closed = Signal(object)
 
     def __init__(self, array: np.ndarray, title: str, copy: int = 1) -> None:
-
         if array.ndim != 3:
             raise ValueError("Must be a 3 dimensional array (time, y, x).")
 
@@ -300,7 +297,6 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.slider.setRange(0, self.num_frames - 1)
         self.slider.setSingleStep(1)
         self.slider.setPageStep(1)
-        print(self.slider.tickInterval())
         self.slider.valueChanged.connect(self.update_frames)
 
         self.play_button = widgets.QPushButton("Play")
@@ -327,7 +323,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         control_row.addWidget(self.crosshair_cb)
 
         layout.addLayout(control_row)
-
+    
     def toggle_crosshair_visbility(self, state: Qt.CheckState) -> None:
         for dock in self.docks:
             dock.set_crosshair_visbility(state == Qt.CheckState.Checked.value)
