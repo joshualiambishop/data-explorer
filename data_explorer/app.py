@@ -8,7 +8,7 @@ import pyqtgraph as pg  # type: ignore[import-untyped]
 import PySide6.QtWidgets as widgets
 from PySide6.QtCore import QPointF, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QKeyEvent
-
+import numpy.typing as npt
 from data_explorer import primitives
 
 BORDER_COLOUR: Final[str] = "y"
@@ -22,18 +22,32 @@ class SimpleOperation:
     calculation: Callable[[np.ndarray, np.ndarray], np.ndarray]
 
 
+@dataclasses.dataclass
+class ThresholdOperation:
+    description: str
+    operator: Optional[str]
+    calculation: Callable[[np.ndarray, float], np.ndarray]
+
+
 TWO_PIECE_OPERATIONS: Final[list[SimpleOperation]] = [
     SimpleOperation("Difference", "-", lambda a, b: a - b),
     SimpleOperation("Division", "/", lambda a, b: a / b),
     SimpleOperation("Sum", "+", lambda a, b: a + b),
 ]
-THRESHOLD_OPERATIONS: Final[list[SimpleOperation]] = [
-    SimpleOperation("Greater than", ">", lambda a, b: a > b),
-    SimpleOperation("Less than", "<", lambda a, b: a < b),
-    SimpleOperation("Greater or equal to", ">=", lambda a, b: a >= b),
-    SimpleOperation("Less or equal to", "<=", lambda a, b: a <= b),
-    SimpleOperation("Equal to", "==", lambda a, b: a == b),
+THRESHOLD_OPERATIONS: Final[list[ThresholdOperation]] = [
+    ThresholdOperation("Greater than", ">", lambda array, threshold: array > threshold),
+    ThresholdOperation("Less than", "<", lambda array, threshold: array < threshold),
+    ThresholdOperation(
+        "Greater or equal to", ">=", lambda array, threshold: array >= threshold
+    ),
+    ThresholdOperation(
+        "Less or equal to", "<=", lambda array, threshold: array <= threshold
+    ),
+    ThresholdOperation("Equal to", "==", lambda array, threshold: array == threshold),
 ]
+_IDENTITY: Final[ThresholdOperation] = ThresholdOperation(
+    "IDENTITY", "-", lambda array, threshold: array
+)
 
 
 class OperationPanel(widgets.QWidget):
@@ -145,10 +159,20 @@ class OperationPanel(widgets.QWidget):
 
 
 class ArrayDock(widgets.QDockWidget):
+    """
+    The ArrayDock is the base widget that can be dragged, duplicated, and is the core of the visualisation.
+
+    Each dock is tightly coupled to raw data, it can spawn duplicates, but the original cannot be closed.
+
+    There is internal logic to apply custom rules for displaying the image; like thresholding.
+
+    There are some parent communication for properly synchronising information across ArrayDock instances, for a unified cursor.
+    """
+
     # These signals are controlled globally or require synchronisation
-    update_cursor = Signal(float, float)
-    duplicate = Signal(object)
-    closed = Signal(object)
+    update_cursor_signal = Signal(float, float)
+    create_duplicate_signal = Signal(object)
+    close_signal = Signal(object)
 
     def __init__(
         self, array: np.ndarray, title: str, instance_number: int, is_derived: bool
@@ -161,8 +185,11 @@ class ArrayDock(widgets.QDockWidget):
         )
         self._title = title
         self._array = array
-        self.frame = 0
+        self._frame = 0
         self._instance_number = instance_number
+
+        self._current_threshold_op: Optional[ThresholdOperation] = None
+        self._colour_cache: tuple[str, float, float] = ("", 0, 0)
         self.is_derived = is_derived
 
         features = (
@@ -175,6 +202,12 @@ class ArrayDock(widgets.QDockWidget):
         self.setFeatures(features)
         self._init_ui()
         self.set_frame(0)
+
+    def get_title(self) -> str:
+        return self._title
+
+    def get_array(self) -> np.ndarray:
+        return self._array
 
     @property
     def is_copy(self) -> bool:
@@ -223,7 +256,7 @@ class ArrayDock(widgets.QDockWidget):
         self.view_box.addItem(self.x_pos_text, ignoreBounds=True)
 
         self.layout_widget.scene().sigMouseMoved.connect(self.mouse_moved)
-        self.update_cursor.connect(self.sync_crosshair)
+        self.update_cursor_signal.connect(self.sync_crosshair)
 
     def _build_control_panel(self, parent_layout: widgets.QVBoxLayout) -> None:
 
@@ -259,28 +292,99 @@ class ArrayDock(widgets.QDockWidget):
 
         grid.addWidget(colour_group, 0, 0, 1, 4)
 
+        self.new_threshold_button = widgets.QPushButton("Add threshold")
+        self.new_threshold_button.setToolTip(
+            "Create a new rule to threshold the image (reversible)"
+        )
+        self.new_threshold_button.clicked.connect(self._show_threshold_menu)
+        grid.addWidget(self.new_threshold_button, 2, 0, 1, 3)
+
+        # 2.5.b: Threshold form (hidden until operation chosen)
+        self.threshold_form = widgets.QWidget()
+        tf_layout = widgets.QHBoxLayout(self.threshold_form)
+        self.threshold_desc_label = widgets.QLabel("")
+
+        self.threshold_value_spin = primitives.build_double_spinbox(
+            min=np.nanmin(self._array),
+            max=np.nanmax(self._array),
+            default=np.nanpercentile(self._array, 50),
+        )
+        self.threshold_cancel_btn = widgets.QPushButton("Cancel")
+        tf_layout.addWidget(widgets.QLabel("Threshold values "))
+        tf_layout.addWidget(self.threshold_desc_label)
+        tf_layout.addWidget(self.threshold_value_spin)
+        tf_layout.addWidget(self.threshold_cancel_btn)
+
+        grid.addWidget(self.threshold_form, 2, 0, 1, 3)
+        self.threshold_form.hide()
+
+        self.threshold_cancel_btn.clicked.connect(self._cancel_threshold)
+        self.threshold_value_spin.valueChanged.connect(
+            lambda: self.set_frame(self._frame)
+        )
+
         self.reset_view_btn = widgets.QPushButton("Reset View")
         self.reset_view_btn.setToolTip("Reset pan/zoom to show the full image")
         self.reset_view_btn.clicked.connect(self.on_reset_view)
         grid.addWidget(self.reset_view_btn, 1, 0)
 
-        # Duplicate button
         if not self.is_copy:
             self.duplicate_button = widgets.QPushButton("Duplicate")
             self.duplicate_button.clicked.connect(self.on_duplicate_pressed)
             grid.addWidget(self.duplicate_button, 1, 1, 1, 3)
 
-        # Add grid to the layout
         parent_layout.addLayout(grid)
 
-    def get_title(self) -> str:
-        return self._title
+    def _show_threshold_menu(self) -> None:
+        menu = widgets.QMenu(self, title="Threshold operation")
+        for operation in THRESHOLD_OPERATIONS:
+            action = menu.addAction(operation.description)
+            action.triggered.connect(
+                lambda checked, op=operation: self._show_threshold_form(op)
+            )
+        global_position = self.new_threshold_button.mapToGlobal(
+            self.new_threshold_button.rect().bottomLeft()
+        )
+        menu.exec(global_position)
 
-    def get_array(self) -> np.ndarray:
-        return self._array
+    def _show_threshold_form(self, operation: ThresholdOperation) -> None:
+        self._colour_cache = (
+            self.cmap_combo.currentText(),
+            self.vmin_spin.value(),
+            self.vmax_spin.value(),
+        )
+
+        self.vmin_spin.setValue(0)
+        self.vmax_spin.setValue(1)
+        self.cmap_combo.setCurrentText("gray")
+
+        for widget in (self.vmin_spin, self.vmax_spin, self.cmap_combo):
+            widget.setEnabled(False)
+            widget.setToolTip("Cannot change while a threshold rule is active.")
+
+        self.threshold_desc_label.setText(operation.description.lower())
+        self._current_threshold_op = operation
+        self.new_threshold_button.hide()
+        self.threshold_form.show()
+        self.set_frame(self._frame)
+
+    def _cancel_threshold(self) -> None:
+        old_cmap, old_vmin, old_vmax = self._colour_cache
+        for widget in (self.vmin_spin, self.vmax_spin, self.cmap_combo):
+            widget.setEnabled(True)
+            widget.setToolTip("")
+
+        self.vmin_spin.setValue(old_vmin)
+        self.vmax_spin.setValue(old_vmax)
+        self.cmap_combo.setCurrentText(old_cmap)
+
+        self._current_threshold_op = None
+        self.threshold_form.hide()
+        self.new_threshold_button.show()
+        self.set_frame(self._frame)
 
     def on_duplicate_pressed(self) -> None:
-        self.duplicate.emit(self)
+        self.create_duplicate_signal.emit(self)
 
     def on_reset_view(self) -> None:
         self.view_box.autoRange()
@@ -297,12 +401,17 @@ class ArrayDock(widgets.QDockWidget):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         # We must send a signal out on destruction to close any references.
-        self.closed.emit(self)
+        self.close_signal.emit(self)
         super().closeEvent(event)
 
     def set_frame(self, frame: int) -> None:
-        self.frame = frame
-        self.image_item.setImage(self._array[self.frame].T)
+        self._frame = frame
+        image = self._array[self._frame].T
+        if self._current_threshold_op is not None:
+            threshold = self.threshold_value_spin.value()
+            image = self._current_threshold_op.calculation(image, threshold)
+
+        self.image_item.setImage(image)
         self.update_clim()
         self.sync_crosshair(self.crosshair_y.value(), self.crosshair_x.value())
 
@@ -314,7 +423,7 @@ class ArrayDock(widgets.QDockWidget):
     def mouse_moved(self, pos: QPointF) -> None:
         if self.view_box.sceneBoundingRect().contains(pos):
             mouse_point = self.view_box.mapSceneToView(pos)
-            self.update_cursor.emit(
+            self.update_cursor_signal.emit(
                 *(
                     np.subtract(
                         [mouse_point.x(), mouse_point.y()], 0.5
@@ -343,7 +452,13 @@ class ArrayDock(widgets.QDockWidget):
 
         ix, iy = int(x), int(y)
         try:
-            value = self._array[self.frame, iy, ix]
+            image = self._array[self._frame]
+            if self._current_threshold_op is not None:
+                threshold = self.threshold_value_spin.value()
+                image = self._current_threshold_op.calculation(image, threshold)
+
+            value = image[iy, ix]
+
         except IndexError:
             value = float("nan")
 
@@ -398,9 +513,9 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.docks.append(dock)
 
         # global signals
-        dock.update_cursor.connect(self.broadcast_cursor)
-        dock.duplicate.connect(self.duplicate_dock)
-        dock.closed.connect(self._remove_dock)
+        dock.update_cursor_signal.connect(self.broadcast_cursor)
+        dock.create_duplicate_signal.connect(self.duplicate_dock)
+        dock.close_signal.connect(self._remove_dock)
 
         self.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dock)
         dock.setAllowedAreas(
