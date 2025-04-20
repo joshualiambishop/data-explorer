@@ -22,10 +22,17 @@ class SimpleOperation:
     calculation: Callable[[np.ndarray, np.ndarray], np.ndarray]
 
 
-SIMPLE_OPERATIONS: Final[list[SimpleOperation]] = [
+TWO_PIECE_OPERATIONS: Final[list[SimpleOperation]] = [
     SimpleOperation("Difference", "-", lambda a, b: a - b),
     SimpleOperation("Division", "/", lambda a, b: a / b),
     SimpleOperation("Sum", "+", lambda a, b: a + b),
+]
+THRESHOLD_OPERATIONS: Final[list[SimpleOperation]] = [
+    SimpleOperation("Greater than", ">", lambda a, b: a > b),
+    SimpleOperation("Less than", "<", lambda a, b: a < b),
+    SimpleOperation("Greater or equal to", ">=", lambda a, b: a >= b),
+    SimpleOperation("Less or equal to", "<=", lambda a, b: a <= b),
+    SimpleOperation("Equal to", "==", lambda a, b: a <= b),
 ]
 
 
@@ -50,7 +57,7 @@ class OperationDock(widgets.QDockWidget):
         # initial buttons panel
         self.buttons_panel = widgets.QWidget()
         btn_layout = widgets.QVBoxLayout(self.buttons_panel)
-        for operation in SIMPLE_OPERATIONS:
+        for operation in TWO_PIECE_OPERATIONS:
             btn = widgets.QPushButton(
                 f"Calculate {operation.description.lower()} of two arrays"
             )
