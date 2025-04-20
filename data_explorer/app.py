@@ -365,6 +365,11 @@ class ArrayViewerApp(widgets.QMainWindow):
         dock.closed.connect(self._remove_dock)
 
         self.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dock)
+        dock.setAllowedAreas(
+            Qt.DockWidgetArea.TopDockWidgetArea
+            | Qt.DockWidgetArea.RightDockWidgetArea
+            | Qt.DockWidgetArea.LeftDockWidgetArea
+        )
 
     def register_array(self, array: np.ndarray, title: str) -> "ArrayViewerApp":
         self._add_array(array, title, can_delete=False)
