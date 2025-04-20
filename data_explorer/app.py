@@ -6,7 +6,7 @@ from typing import Callable, Final, List, Optional, Sequence
 import numpy as np
 import pyqtgraph as pg  # type: ignore[import-untyped]
 import PySide6.QtWidgets as widgets
-from PySide6.QtCore import QPointF, Qt, QTimer, Signal
+from PySide6.QtCore import QPointF, Qt, QTimer, Signal, QSignalBlocker
 from PySide6.QtGui import QCloseEvent, QKeyEvent
 
 from data_explorer import primitives
@@ -87,19 +87,32 @@ class OperationPanel(widgets.QWidget):
 
         self.cancel_btn.clicked.connect(self._reset)
         self.create_btn.clicked.connect(self._create)
+        self.combo_a.currentTextChanged.connect(self._filter_combo_b)
 
     def _show_form(self, operation: SimpleOperation) -> None:
-        # populate dropdowns with current original dock titles
+
         titles = [dock.get_title() for dock in self.parent_app.get_original_docks()]
         self.combo_a.clear()
         self.combo_a.addItems(titles)
-        self.combo_b.clear()
-        self.combo_b.addItems(titles)
+        # combo b filled in by combo_a signal
         self.operator_desc_label.setText(f"Create {operation.description.lower()}: ")
         self.operator_op_label.setText(operation.operator or "")
         self.current_op = operation
         self.buttons_panel.hide()
         self.form_panel.show()
+
+    def _filter_combo_b(self, selected_title: str) -> None:
+        available_titles = [
+            title
+            for dock in self.parent_app.get_original_docks()
+            if (title := dock.get_title()) != selected_title
+        ]
+
+        current = self.combo_b.currentText()
+        self.combo_b.clear()
+        self.combo_b.addItems(available_titles)
+        if current in available_titles:
+            self.combo_b.setCurrentText(current)
 
     def _reset(self) -> None:
         self.form_panel.hide()
@@ -538,7 +551,7 @@ if __name__ == "__main__":
     b = np.random.randn(100, 64, 128).astype(np.float32).cumsum(0)
     b[0, 32, 62] = 20
     b[0, 0, 0] = -20
-    launch_viewer([a], ["Random A", "Random B"])
+    launch_viewer([a, b], ["Random A", "Random B"])
 
 
 # To do list
