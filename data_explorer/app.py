@@ -120,7 +120,7 @@ class OperationPanel(widgets.QWidget):
         )
         new_arr = self.current_op.calculation(a_arr, b_arr)
         new_title = f"{a_title} {self.current_op.operator} {b_title}"
-        self.parent_app._add_array(array=new_arr, title=new_title, can_delete=True)
+        self.parent_app._add_array(array=new_arr, title=new_title, is_derived=True)
         self._reset()
 
 
@@ -131,22 +131,25 @@ class ArrayDock(widgets.QDockWidget):
     closed = Signal(object)
 
     def __init__(
-        self, array: np.ndarray, title: str, copy: int, can_delete: bool
+        self, array: np.ndarray, title: str, instance_number: int, is_derived: bool
     ) -> None:
         if array.ndim != 3:
             raise ValueError("Must be a 3 dimensional array (time, y, x).")
 
-        super().__init__(title if copy == 1 else title + f" ({copy})")
+        super().__init__(
+            title if instance_number == 1 else title + f" ({instance_number})"
+        )
         self._title = title
         self._array = array
         self.frame = 0
-        self._copy = copy
+        self._instance_number = instance_number
+        self.is_derived = is_derived
 
         features = (
             widgets.QDockWidget.DockWidgetFeature.DockWidgetMovable
             | widgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable
         )
-        if not self.is_original or can_delete:
+        if self.is_copy or self.is_derived:
             features |= widgets.QDockWidget.DockWidgetFeature.DockWidgetClosable
 
         self.setFeatures(features)
@@ -154,8 +157,8 @@ class ArrayDock(widgets.QDockWidget):
         self.set_frame(0)
 
     @property
-    def is_original(self) -> bool:
-        return self._copy == 1
+    def is_copy(self) -> bool:
+        return self._instance_number > 1
 
     def _init_ui(self) -> None:
         self.main_widget = widgets.QWidget()
@@ -242,7 +245,7 @@ class ArrayDock(widgets.QDockWidget):
         grid.addWidget(self.reset_view_btn, 1, 0)
 
         # Duplicate button
-        if self.is_original:
+        if not self.is_copy:
             self.duplicate_button = widgets.QPushButton("Duplicate")
             self.duplicate_button.clicked.connect(self.on_duplicate_pressed)
             grid.addWidget(self.duplicate_button, 1, 1, 1, 3)
@@ -331,6 +334,8 @@ class ArrayDock(widgets.QDockWidget):
 
 class ArrayViewerApp(widgets.QMainWindow):
 
+    new_array_added = Signal()
+
     def __init__(self, arrays: Sequence[np.ndarray], titles: Sequence[str]) -> None:
         super().__init__()
         self._enforced_shape: Optional[tuple[int, int, int]] = None
@@ -342,13 +347,13 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.frame_label = widgets.QLabel()
         self._init_ui()
 
+        self.new_array_added.connect(self.on_new_array_added)
         for array, title in zip(arrays, titles):
             self.register_array(array, title)
 
         self.update_frames(0)
         self.timer = QTimer()
         self.timer.timeout.connect(self.advance_frame)
-
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
     def _validate_shape_of(self, array: np.ndarray) -> None:
@@ -359,10 +364,15 @@ class ArrayViewerApp(widgets.QMainWindow):
                 f"Array provided has shape {array.shape}, but it must be same as others ({self._enforced_shape})."
             )
 
-    def _add_array(self, array: np.ndarray, title: str, can_delete: bool) -> None:
+    def _add_array(self, array: np.ndarray, title: str, is_derived: bool) -> None:
         self._validate_shape_of(array)
-        self.dock_instances[title] = copy = self.dock_instances.get(title, 0) + 1
-        dock = ArrayDock(array=array, title=title, copy=copy, can_delete=can_delete)
+        self.dock_instances[title] = self.dock_instances.get(title, 0) + 1
+        dock = ArrayDock(
+            array=array,
+            title=title,
+            instance_number=self.dock_instances[title],
+            is_derived=is_derived,
+        )
 
         # track instance
         self.docks.append(dock)
@@ -378,14 +388,16 @@ class ArrayViewerApp(widgets.QMainWindow):
             | Qt.DockWidgetArea.RightDockWidgetArea
             | Qt.DockWidgetArea.LeftDockWidgetArea
         )
+        self.new_array_added.emit()
 
     def register_array(self, array: np.ndarray, title: str) -> "ArrayViewerApp":
-        self._add_array(array, title, can_delete=False)
+        self._add_array(array, title, is_derived=False)
         return self
 
+    def on_new_array_added(self) -> None:
+        self.operation_panel.setVisible(len(self.docks) >= 2)
+
     def _remove_dock(self, dock: ArrayDock) -> None:
-        if dock.is_original:
-            raise ValueError("Can only remove duplicate docks.")
         self.docks.remove(dock)
         self.dock_instances[dock.get_title()] -= 1
 
@@ -409,10 +421,10 @@ class ArrayViewerApp(widgets.QMainWindow):
             super().keyPressEvent(event)
 
     def duplicate_dock(self, dock: ArrayDock) -> None:
-        self._add_array(dock.get_array(), title=dock.get_title(), can_delete=False)
+        self._add_array(dock.get_array(), title=dock.get_title(), is_derived=False)
 
     def get_original_docks(self) -> list[ArrayDock]:
-        return [dock for dock in self.docks if dock.is_original]
+        return [dock for dock in self.docks if not dock.is_copy]
 
     def _init_ui(self) -> None:
         self.setDockNestingEnabled(True)
@@ -520,15 +532,12 @@ if __name__ == "__main__":
     b = np.random.randn(100, 64, 128).astype(np.float32).cumsum(0)
     b[0, 32, 62] = 20
     b[0, 0, 0] = -20
-    launch_viewer([a, b], ["Random A", "Random B"])
+    launch_viewer([a], ["Random A", "Random B"])
 
 
 # To do list
 
-# Don't show arithmatic unless there are at least two arrays
-# leave it in main control panel, rather than a draggable dock
-#
-#
+
 # Lazy/Future Array Support
 
 # Accept either full np.ndarray or Callable[[frame], np.ndarray] via a FrameProvider descriptor.
