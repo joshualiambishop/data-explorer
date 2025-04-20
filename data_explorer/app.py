@@ -117,11 +117,6 @@ class ArrayDock(widgets.QDockWidget):
         self.reset_view_btn.setToolTip("Reset pan/zoom to show the full image")
         self.reset_view_btn.clicked.connect(self.on_reset_view)
 
-        self.crosshair_cb = widgets.QCheckBox("Crosshair")
-        self.crosshair_cb.setChecked(True)
-        self.crosshair_cb.setToolTip("Show/hide the crosshair and value overlays")
-        self.crosshair_cb.stateChanged.connect(self.on_toggle_crosshair)
-
         grid.addWidget(widgets.QLabel("Min:"), 0, 2)
         grid.addWidget(self.vmin_spin, 0, 3)
         grid.addWidget(widgets.QLabel("Max:"), 1, 2)
@@ -129,7 +124,6 @@ class ArrayDock(widgets.QDockWidget):
         grid.addWidget(widgets.QLabel("Colormap:"), 0, 0)
         grid.addWidget(self.cmap_combo, 0, 1)
         grid.addWidget(self.reset_view_btn, 1, 0)
-        grid.addWidget(self.crosshair_cb, 1, 1)
 
         # Duplicate button
         if not self.is_duplicate:
@@ -152,7 +146,7 @@ class ArrayDock(widgets.QDockWidget):
     def on_reset_view(self) -> None:
         self.view_box.autoRange()
 
-    def on_toggle_crosshair(self, state: Qt.CheckState) -> None:
+    def set_crosshair_visbility(self, visible: bool) -> None:
         for item in (
             self.crosshair_x,
             self.crosshair_y,
@@ -160,7 +154,7 @@ class ArrayDock(widgets.QDockWidget):
             self.x_pos_text,
             self.y_pos_text,
         ):
-            item.setVisible(state is Qt.CheckState.Checked)
+            item.setVisible(visible)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         # We must send a signal out on destruction to close any references.
@@ -308,6 +302,9 @@ class ArrayViewerApp(widgets.QMainWindow):
 
         self.slider = widgets.QSlider(Qt.Orientation.Horizontal)
         self.slider.setRange(0, self.num_frames - 1)
+        self.slider.setSingleStep(1)
+        self.slider.setPageStep(1)
+        print(self.slider.tickInterval())
         self.slider.valueChanged.connect(self.update_frames)
 
         self.play_button = widgets.QPushButton("Play")
@@ -319,6 +316,11 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.fps_spinner.setValue(20)
         self.fps_spinner.setSuffix(" fps")
 
+        self.crosshair_cb = widgets.QCheckBox("Crosshair")
+        self.crosshair_cb.setChecked(True)
+        self.crosshair_cb.setToolTip("Show/hide the crosshair and value overlays")
+        self.crosshair_cb.stateChanged.connect(self.toggle_crosshair_visbility)
+
         control_row = widgets.QHBoxLayout()
         control_row.addWidget(widgets.QLabel("Frame:"))
         control_row.addWidget(self.slider)
@@ -326,8 +328,13 @@ class ArrayViewerApp(widgets.QMainWindow):
         control_row.addWidget(self.play_button)
         control_row.addWidget(widgets.QLabel("FPS:"))
         control_row.addWidget(self.fps_spinner)
+        control_row.addWidget(self.crosshair_cb)
 
         layout.addLayout(control_row)
+
+    def toggle_crosshair_visbility(self, state: Qt.CheckState) -> None:
+        for dock in self.docks:
+            dock.set_crosshair_visbility(state == Qt.CheckState.Checked.value)
 
     def update_frames(self, frame: int) -> None:
         self.frame_label.setText(f"{frame+1}/{self.num_frames}")
