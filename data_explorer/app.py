@@ -46,8 +46,9 @@ class OperationPanel(widgets.QWidget):
         self.parent_app = parent_app
 
         layout = widgets.QVBoxLayout(self)
+
         # initial buttons panel
-        self.buttons_panel = widgets.QGroupBox(title="Array operations")
+        self.buttons_panel = widgets.QGroupBox()
         btn_layout = widgets.QHBoxLayout(self.buttons_panel)
         for operation in TWO_PIECE_OPERATIONS:
             btn = widgets.QPushButton(
@@ -66,12 +67,19 @@ class OperationPanel(widgets.QWidget):
         self.combo_a = widgets.QComboBox()
         self.operator_op_label = widgets.QLabel("")
         self.combo_b = widgets.QComboBox()
+
         self.create_btn = widgets.QPushButton("Create")
         self.cancel_btn = widgets.QPushButton("Cancel")
         form_layout.addWidget(self.operator_desc_label)
-        form_layout.addWidget(self.combo_a)
-        form_layout.addWidget(self.operator_op_label)
-        form_layout.addWidget(self.combo_b)
+        form_layout.addWidget(
+            self.combo_a, alignment=Qt.AlignmentFlag.AlignRight, stretch=2
+        )
+        form_layout.addWidget(
+            self.operator_op_label, alignment=Qt.AlignmentFlag.AlignCenter, stretch=0
+        )
+        form_layout.addWidget(
+            self.combo_b, alignment=Qt.AlignmentFlag.AlignLeft, stretch=2
+        )
         form_layout.addWidget(self.create_btn)
         form_layout.addWidget(self.cancel_btn)
         layout.addWidget(self.form_panel)
@@ -444,11 +452,22 @@ class ArrayViewerApp(widgets.QMainWindow):
         control_row.addWidget(self.fps_spinner)
         control_row.addWidget(self.crosshair_cb)
 
+        control_layout.addLayout(control_row)
+
+        footer = widgets.QFrame()
+        footer.setFrameShape(widgets.QFrame.Shape.StyledPanel)
+        footer.setStyleSheet(
+            "background-color: #2b2b2b;"
+        )  # slightly darker than background
+
         self.operation_panel = OperationPanel(self)
 
-        control_layout.addLayout(control_row)
-        control_layout.addWidget(self.operation_panel)
-        layout.addLayout(control_layout)
+        footer_layout = widgets.QVBoxLayout(footer)
+
+        footer_layout.addLayout(control_layout)
+        footer_layout.addWidget(self.operation_panel)
+
+        layout.addWidget(footer)
 
     def toggle_crosshair_visbility(self, state: Qt.CheckState) -> None:
         for dock in self.docks:
