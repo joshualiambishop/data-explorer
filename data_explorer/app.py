@@ -6,7 +6,7 @@ from typing import Callable, Final, List, Optional, Sequence
 import numpy as np
 import pyqtgraph as pg  # type: ignore[import-untyped]
 import PySide6.QtWidgets as widgets
-from PySide6.QtCore import QPointF, Qt, QTimer, Signal, QSignalBlocker
+from PySide6.QtCore import QPointF, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QKeyEvent
 
 from data_explorer import primitives
