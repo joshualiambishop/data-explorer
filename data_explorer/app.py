@@ -3,7 +3,7 @@ import sys
 from typing import Final, List, Optional, Sequence
 
 import numpy as np
-import pyqtgraph as pg
+import pyqtgraph as pg  # type: ignore[import-untyped]
 import PySide6.QtWidgets as widgets
 from PySide6.QtCore import QPointF, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QKeyEvent
@@ -323,7 +323,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         control_row.addWidget(self.crosshair_cb)
 
         layout.addLayout(control_row)
-    
+
     def toggle_crosshair_visbility(self, state: Qt.CheckState) -> None:
         for dock in self.docks:
             dock.set_crosshair_visbility(state == Qt.CheckState.Checked.value)
