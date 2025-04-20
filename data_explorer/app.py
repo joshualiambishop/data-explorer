@@ -419,8 +419,10 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.central = widgets.QWidget()
         self.setCentralWidget(self.central)
 
-        layout = widgets.QVBoxLayout()
-        self.central.setLayout(layout)
+        top_level_layout = widgets.QVBoxLayout()
+        top_level_layout.setContentsMargins(0, 0, 0, 0)
+        top_level_layout.setSpacing(0)
+        self.central.setLayout(top_level_layout)
 
         self.slider = widgets.QSlider(Qt.Orientation.Horizontal)
         self.slider.setRange(0, self.num_frames - 1)
@@ -454,11 +456,8 @@ class ArrayViewerApp(widgets.QMainWindow):
 
         control_layout.addLayout(control_row)
 
-        footer = widgets.QFrame()
-        footer.setFrameShape(widgets.QFrame.Shape.StyledPanel)
-        footer.setStyleSheet(
-            "background-color: #2b2b2b;"
-        )  # slightly darker than background
+        footer = widgets.QWidget()
+        footer.setStyleSheet("background-color: #2b2b2b;")
 
         self.operation_panel = OperationPanel(self)
 
@@ -467,7 +466,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         footer_layout.addLayout(control_layout)
         footer_layout.addWidget(self.operation_panel)
 
-        layout.addWidget(footer)
+        top_level_layout.addWidget(footer)
 
     def toggle_crosshair_visbility(self, state: Qt.CheckState) -> None:
         for dock in self.docks:
