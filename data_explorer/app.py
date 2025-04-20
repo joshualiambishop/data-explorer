@@ -25,6 +25,7 @@ class SimpleOperation:
 SIMPLE_OPERATIONS: Final[list[SimpleOperation]] = [
     SimpleOperation("Difference", "-", lambda a, b: a - b),
     SimpleOperation("Division", "/", lambda a, b: a / b),
+    SimpleOperation("Sum", "+", lambda a, b: a + b),
 ]
 
 
