@@ -31,7 +31,7 @@ SIMPLE_OPERATIONS: Final[list[SimpleOperation]] = [
 
 class OperationDock(widgets.QDockWidget):
     """
-    A fixed dock for creating new derived arrays via arithmetic operations
+    A fixed dock for creating new derived arrays through simple operations
     """
 
     def __init__(self, parent_app: "ArrayViewerApp") -> None:
@@ -52,7 +52,7 @@ class OperationDock(widgets.QDockWidget):
         btn_layout = widgets.QVBoxLayout(self.buttons_panel)
         for operation in SIMPLE_OPERATIONS:
             btn = widgets.QPushButton(
-                f"Create {operation.description.lower()} operation"
+                f"Calculate {operation.description.lower()} of two arrays"
             )
             btn.clicked.connect(
                 lambda _checked, operation=operation: self._show_form(operation)
@@ -392,6 +392,10 @@ class ArrayViewerApp(widgets.QMainWindow):
         elif key_pressed == Qt.Key.Key_Left:
             # previous frame
             self.slider.setValue(max(self.slider.value() - 1, 0))
+
+        elif key_pressed == Qt.Key.Key_C:
+            self.crosshair_cb.setChecked(not self.crosshair_cb.isChecked())
+
         else:
             super().keyPressEvent(event)
 
@@ -425,7 +429,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.fps_spinner.setSuffix(" fps")
 
         self.crosshair_cb = widgets.QCheckBox("Crosshair")
-        self.crosshair_cb.setChecked(True)
+        self.crosshair_cb.setChecked(False)
         self.crosshair_cb.setToolTip("Show/hide the crosshair and value overlays")
         self.crosshair_cb.stateChanged.connect(self.toggle_crosshair_visbility)
 
