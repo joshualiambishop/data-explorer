@@ -131,7 +131,14 @@ class OperationPanel(widgets.QWidget):
             for d in self.parent_app.get_original_docks()
             if d.get_title() == b_title
         )
-        new_arr = self.current_op.calculation(a_arr, b_arr)
+        try:
+            with np.errstate(divide="raise", invalid="raise"):
+                new_arr = self.current_op.calculation(a_arr, b_arr)
+            if np.isnan(new_arr).any() or np.isinf(new_arr).any():
+                raise FloatingPointError("Result contains NaNs or infinities.")
+        except FloatingPointError as e:
+            widgets.QMessageBox.warning(self, "Calculation error", str(e))
+            return
         new_title = f"{a_title} {self.current_op.operator} {b_title}"
         self.parent_app._add_array(array=new_arr, title=new_title, is_derived=True)
         self._reset()
