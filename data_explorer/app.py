@@ -22,29 +22,31 @@ class ArrayDock(widgets.QDockWidget):
     duplicate = Signal(object)
     closed = Signal(object)
 
-    def __init__(
-        self, array: np.ndarray, title: str, is_duplicate: bool = False
-    ) -> None:
+    def __init__(self, array: np.ndarray, title: str, copy: int = 1) -> None:
 
         if array.ndim != 3:
             raise ValueError("Must be a 3 dimensional array (time, y, x).")
 
-        super().__init__(title)
+        super().__init__(title if copy == 1 else title + f" ({copy})")
         self._title = title
         self._array = array
         self.frame = 0
-        self.is_duplicate = is_duplicate
+        self._copy = copy
 
         features = (
             widgets.QDockWidget.DockWidgetFeature.DockWidgetMovable
             | widgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable
         )
-        if self.is_duplicate:
+        if not self.is_original:
             features |= widgets.QDockWidget.DockWidgetFeature.DockWidgetClosable
 
         self.setFeatures(features)
         self._init_ui()
         self.set_frame(0)
+
+    @property
+    def is_original(self) -> bool:
+        return self._copy == 1
 
     def _init_ui(self) -> None:
         self.main_widget = widgets.QWidget()
@@ -126,7 +128,7 @@ class ArrayDock(widgets.QDockWidget):
         grid.addWidget(self.reset_view_btn, 1, 0)
 
         # Duplicate button
-        if not self.is_duplicate:
+        if self.is_original:
             self.duplicate_button = widgets.QPushButton("Duplicate")
             self.duplicate_button.clicked.connect(self.on_duplicate_pressed)
             grid.addWidget(self.duplicate_button, 2, 0, 1, 4)
@@ -243,12 +245,10 @@ class ArrayViewerApp(widgets.QMainWindow):
                 f"Data provided has shape {data.shape}, must be same as others ({self._enforced_shape})."
             )
 
-    def _add_array(self, array: np.ndarray, title: str, is_duplicate: bool) -> None:
+    def register_array(self, array: np.ndarray, title: str) -> "ArrayViewerApp":
         self._validate_shape_of(array)
         self.dock_instances[title] = self.dock_instances.get(title, 0) + 1
-        if is_duplicate:
-            title += f" ({self.dock_instances[title]})"
-        dock = ArrayDock(array=array, title=title, is_duplicate=is_duplicate)
+        dock = ArrayDock(array=array, title=title, copy=self.dock_instances[title])
 
         # track instance
         self.docks.append(dock)
@@ -259,16 +259,13 @@ class ArrayViewerApp(widgets.QMainWindow):
         dock.closed.connect(self._remove_dock)
 
         self.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dock)
+        return self
 
     def _remove_dock(self, dock: ArrayDock) -> None:
-        if not dock.is_duplicate:
+        if dock.is_original:
             raise ValueError("Can only remove duplicate docks.")
         self.docks.remove(dock)
         self.dock_instances[dock.get_title()] -= 1
-
-    def register_array(self, array: np.ndarray, title: str) -> "ArrayViewerApp":
-        self._add_array(array, title, is_duplicate=False)
-        return self
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
 
@@ -286,10 +283,9 @@ class ArrayViewerApp(widgets.QMainWindow):
             super().keyPressEvent(event)
 
     def duplicate_dock(self, dock: ArrayDock) -> None:
-        self._add_array(
+        self.register_array(
             dock.get_array(),
             title=dock.get_title(),
-            is_duplicate=True,
         )
 
     def _init_ui(self) -> None:
