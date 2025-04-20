@@ -181,7 +181,7 @@ class ArrayDock(widgets.QDockWidget):
 
     def update_colormap(self, name: str) -> None:
         self.image_item.setLookupTable(
-            pg.colormap.get(name).getLookupTable(alpha=False)
+            pg.colormap.get(name, source="matplotlib").getLookupTable(alpha=False)
         )
 
     def sync_crosshair(self, x: float, y: float) -> None:
