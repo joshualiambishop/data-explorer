@@ -2,7 +2,7 @@ import dataclasses
 from typing import Callable, Final, Optional
 from data_explorer.docks.panels import base_panel
 from PySide6 import QtWidgets
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, QSignalBlocker
 import numpy as np
 
 
@@ -92,15 +92,16 @@ class ThresholdPanel(base_panel.BaseDockPanel[Optional[ThresholdConfig]]):
         self.operator_label.setText(f"Highlight values {config.description.lower()}")
         self.add_threshold_button.hide()
         self.threshold_form.show()
-        self.threshold_rule_changed.emit(
-            dataclasses.replace(config, threshold=self.threshold_spinbox.value())
-        )
+        self._on_threshold_change()
 
     def _clear_threshold(self) -> None:
         self._base_config = None
         self.threshold_form.hide()
         self.add_threshold_button.show()
-        self.threshold_rule_changed.emit(None)
+        self._on_threshold_change()
+
+    def _on_threshold_change(self) -> None:
+        self.threshold_rule_changed.emit(self.get_config())
 
     def get_config(self) -> Optional[ThresholdConfig]:
         if self._base_config is None:
@@ -109,5 +110,11 @@ class ThresholdPanel(base_panel.BaseDockPanel[Optional[ThresholdConfig]]):
             self._base_config, threshold=self.threshold_spinbox.value()
         )
 
-    def _on_threshold_change(self) -> None:
-        self.threshold_rule_changed.emit(self.get_config())
+    def set_config(self, config: Optional[ThresholdConfig]) -> None:
+        if config is None:
+            self._clear_threshold()
+        else:
+            with QSignalBlocker(self.threshold_spinbox):
+                self.threshold_spinbox.setValue(config.threshold)
+
+            self._create_threshold_form(config)
