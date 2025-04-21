@@ -7,7 +7,10 @@ from PySide6.QtGui import QCloseEvent, QKeyEvent
 
 import numpy as np
 from data_explorer import primitives
-from data_explorer.docks.image_settings import ImageConfig, ImageConfigurationPanel
+from data_explorer.docks.panels.image_configuration import (
+    ImageConfig,
+    ImageConfigurationPanel,
+)
 
 if TYPE_CHECKING:
     from data_explorer.app import ArrayViewerApp

@@ -1,5 +1,5 @@
 from typing import Final, NamedTuple
-from data_explorer.docks import panel
+from data_explorer.docks.panels import base_panel
 from PySide6 import QtWidgets
 from PySide6.QtCore import Signal
 import numpy as np
@@ -14,7 +14,7 @@ class ImageConfig(NamedTuple):
     vmax: float
 
 
-class ImageConfigurationPanel(panel.BaseDockPanel[ImageConfig]):
+class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
     panel_name = "Image Configuration"
 
     config_changed = Signal(object)
