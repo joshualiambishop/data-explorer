@@ -1,9 +1,9 @@
 from typing import Final, NamedTuple
 from data_explorer.docks import panel
 from PySide6 import QtWidgets
-from PySide6.QtCore import Signal, QSignalBlocker
+from PySide6.QtCore import Signal
 import numpy as np
-from contextlib import ExitStack
+
 
 COLOURMAPS: Final[list[str]] = ["gray", "viridis", "plasma", "inferno", "magma"]
 
@@ -14,7 +14,7 @@ class ImageConfig(NamedTuple):
     vmax: float
 
 
-class ImageConfigurationPanel(panel.BaseDockPanel):
+class ImageConfigurationPanel(panel.BaseDockPanel[ImageConfig]):
     panel_name = "Image Configuration"
 
     config_changed = Signal(object)
@@ -24,7 +24,7 @@ class ImageConfigurationPanel(panel.BaseDockPanel):
 
         top_level_layout = QtWidgets.QVBoxLayout(self)
         group = QtWidgets.QGroupBox(self.panel_name)
-        layout = QtWidgets.QHBoxLayout(group)
+        hbox_layout = QtWidgets.QHBoxLayout(group)
 
         self.cmap_combo_box = QtWidgets.QComboBox()
         self.cmap_combo_box.addItems(COLOURMAPS)
@@ -39,12 +39,14 @@ class ImageConfigurationPanel(panel.BaseDockPanel):
         self.vmax_spinbox.setValue(np.nanpercentile(parent_array, 99))
         self.vmax_spinbox.setDecimals(3)
 
-        layout.addWidget(QtWidgets.QLabel("Colourmap:"))
-        layout.addWidget(self.cmap_combo_box)
-        layout.addWidget(QtWidgets.QLabel("Minimum:"))
-        layout.addWidget(self.vmin_spinbox)
-        layout.addWidget(QtWidgets.QLabel("Maximum:"))
-        layout.addWidget(self.vmax_spinbox)
+        for label, widget in (
+            ("Colourmap:", self.cmap_combo_box),
+            ("Minimum:", self.vmin_spinbox),
+            ("Maximum:", self.vmax_spinbox),
+        ):
+
+            hbox_layout.addWidget(QtWidgets.QLabel(label))
+            hbox_layout.addWidget(widget)
 
         top_level_layout.addWidget(group)
 
@@ -66,10 +68,6 @@ class ImageConfigurationPanel(panel.BaseDockPanel):
         )
 
     def set_config(self, config: ImageConfig) -> None:
-        with ExitStack() as stack:
-            for widget in (self.cmap_combo_box, self.vmin_spinbox, self.vmax_spinbox):
-                stack.enter_context(QSignalBlocker(widget))
-
-            self.cmap_combo_box.setCurrentText(config.cmap)
-            self.vmin_spinbox.setValue(config.vmin)
-            self.vmax_spinbox.setValue(config.vmax)
+        self.cmap_combo_box.setCurrentText(config.cmap)
+        self.vmin_spinbox.setValue(config.vmin)
+        self.vmax_spinbox.setValue(config.vmax)

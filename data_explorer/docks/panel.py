@@ -1,11 +1,14 @@
 import PySide6.QtWidgets as widgets
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar, Generic
 
 if TYPE_CHECKING:
     from data_explorer.docks.array_dock import ArrayDock
 
 
-class BaseDockPanel(widgets.QWidget):
+Config_T = TypeVar("Config_T")
+
+
+class BaseDockPanel(widgets.QWidget, Generic[Config_T]):
     panel_name: str
 
     def __init__(self, parent: "ArrayDock") -> None:
@@ -15,7 +18,15 @@ class BaseDockPanel(widgets.QWidget):
         self._connect_signals()
 
     def _build_ui(self) -> None:
+        """For neateness, a method for building the UI elements only."""
         raise NotImplementedError()
 
     def _connect_signals(self) -> None:
+        """For neatness, a method for connecting signals up"""
+        raise NotImplementedError()
+
+    def get_config(self) -> Config_T:
+        raise NotImplementedError()
+
+    def set_config(self, config: Config_T) -> None:
         raise NotImplementedError()

@@ -376,6 +376,7 @@ class ArrayDock(widgets.QDockWidget):
             image = self._current_threshold_op.calculation(image, threshold)
 
         self.image_item.setImage(image)
+        self._apply_image_config(self.image_config_panel.get_config())
         self.sync_crosshair(self.crosshair_y.value(), self.crosshair_x.value())
 
     def _apply_image_config(self, config: ImageConfig) -> None:
