@@ -267,18 +267,18 @@ class ArrayDock(widgets.QDockWidget):
             max=np.nanmax(self._array),
             default=np.nanpercentile(self._array, 1),
         )
-        self.vmin_spin.valueChanged.connect(self.update_clim)
+        self.vmin_spin.valueChanged.connect(self.refresh_cmap)
 
         self.vmax_spin = primitives.build_double_spinbox(
             min=np.nanmin(self._array),
             max=np.nanmax(self._array),
             default=np.nanpercentile(self._array, 99),
         )
-        self.vmax_spin.valueChanged.connect(self.update_clim)
+        self.vmax_spin.valueChanged.connect(self.refresh_cmap)
 
         self.cmap_combo = widgets.QComboBox()
         self.cmap_combo.addItems(COLOURMAPS)
-        self.cmap_combo.currentTextChanged.connect(self.update_colormap)
+        self.cmap_combo.currentTextChanged.connect(self.refresh_cmap)
 
         colour_group = widgets.QGroupBox("Colour settings")
         cg_layout = widgets.QHBoxLayout(colour_group)
@@ -412,11 +412,16 @@ class ArrayDock(widgets.QDockWidget):
             image = self._current_threshold_op.calculation(image, threshold)
 
         self.image_item.setImage(image)
-        self.update_clim()
+        self.refresh_cmap()
         self.sync_crosshair(self.crosshair_y.value(), self.crosshair_x.value())
 
-    def update_clim(self) -> None:
+    def refresh_cmap(self) -> None:
         self.image_item.setLevels((self.vmin_spin.value(), self.vmax_spin.value()))
+        self.image_item.setLookupTable(
+            pg.colormap.get(
+                self.cmap_combo.currentText(), source="matplotlib"
+            ).getLookupTable(alpha=False)
+        )
         self.vmax_spin.setMinimum(self.vmin_spin.value())
         self.vmin_spin.setMaximum(self.vmax_spin.value())
 
@@ -436,11 +441,6 @@ class ArrayDock(widgets.QDockWidget):
                     + 0.5  # convert back to image terms
                 )
             )
-
-    def update_colormap(self, name: str) -> None:
-        self.image_item.setLookupTable(
-            pg.colormap.get(name, source="matplotlib").getLookupTable(alpha=False)
-        )
 
     def sync_crosshair(self, x: float, y: float) -> None:
         self.crosshair_y.setPos(x)
