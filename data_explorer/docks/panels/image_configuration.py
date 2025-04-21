@@ -22,7 +22,7 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
     config_changed = Signal(object)
 
     def _build_ui(self) -> None:
-        parent_array = self._parent_dock.get_array()
+        parent_array = self.get_parent_array_dock().get_array()
         data_min = np.nanmin(parent_array)
         data_max = np.nanmax(parent_array)
 
@@ -57,7 +57,7 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
             hbox_layout.addWidget(widget)
 
         self.reset_button = QtWidgets.QPushButton("<>")
-        self.reset_button.pressed.connect(self._set_to_data_range)
+        self.reset_button.clicked.connect(self._set_to_data_range)
         hbox_layout.addWidget(self.reset_button)
 
         top_level_layout.addWidget(group)
