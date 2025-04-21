@@ -17,6 +17,9 @@ class BaseDockPanel(widgets.QWidget, Generic[Config_T]):
         self._build_ui()
         self._connect_signals()
 
+    def get_parent_array_dock(self) -> "ArrayDock":
+        return self._parent_dock
+
     def _build_ui(self) -> None:
         """For neateness, a method for building the UI elements only."""
         raise NotImplementedError()
@@ -26,7 +29,9 @@ class BaseDockPanel(widgets.QWidget, Generic[Config_T]):
         raise NotImplementedError()
 
     def get_config(self) -> Config_T:
+        """Get method for copy and pasting / duplicating configs"""
         raise NotImplementedError()
 
     def set_config(self, config: Config_T) -> None:
+        """Set method for copy and pasting / duplicating configs"""
         raise NotImplementedError()

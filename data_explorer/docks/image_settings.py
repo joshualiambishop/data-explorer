@@ -31,12 +31,10 @@ class ImageConfigurationPanel(panel.BaseDockPanel[ImageConfig]):
 
         self.vmin_spinbox = QtWidgets.QDoubleSpinBox()
         self.vmin_spinbox.setRange(np.nanmin(parent_array), np.nanmax(parent_array))
-        self.vmin_spinbox.setValue(np.nanpercentile(parent_array, 1))
         self.vmin_spinbox.setDecimals(3)
 
         self.vmax_spinbox = QtWidgets.QDoubleSpinBox()
         self.vmax_spinbox.setRange(np.nanmin(parent_array), np.nanmax(parent_array))
-        self.vmax_spinbox.setValue(np.nanpercentile(parent_array, 99))
         self.vmax_spinbox.setDecimals(3)
 
         for label, widget in (
@@ -48,6 +46,11 @@ class ImageConfigurationPanel(panel.BaseDockPanel[ImageConfig]):
             hbox_layout.addWidget(QtWidgets.QLabel(label))
             hbox_layout.addWidget(widget)
 
+        self.reset_button = QtWidgets.QPushButton("<>")
+        self.reset_button.pressed.connect(self._set_to_data_range)
+        hbox_layout.addWidget(self.reset_button)
+
+        self._set_to_data_range()
         top_level_layout.addWidget(group)
 
     def _connect_signals(self) -> None:
@@ -71,3 +74,12 @@ class ImageConfigurationPanel(panel.BaseDockPanel[ImageConfig]):
         self.cmap_combo_box.setCurrentText(config.cmap)
         self.vmin_spinbox.setValue(config.vmin)
         self.vmax_spinbox.setValue(config.vmax)
+
+    def _set_to_data_range(self) -> None:
+        parent_array = self.get_parent_array_dock().get_array()
+        data_vmin = np.nanmin(parent_array)
+        data_vmax = np.nanmax(parent_array)
+        new_config = ImageConfig(
+            cmap=self.get_config().cmap, vmin=data_vmin, vmax=data_vmax
+        )
+        self.set_config(new_config)
