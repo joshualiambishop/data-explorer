@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Final, NamedTuple
+from typing import Final
 from data_explorer.docks.panels import base_panel
 from PySide6 import QtWidgets
 from PySide6.QtCore import Signal
