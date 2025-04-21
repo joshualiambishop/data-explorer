@@ -14,7 +14,7 @@ class ImageConfig(NamedTuple):
     vmax: float
 
 
-class ImageConfigurationPanel(panel.AbstractDockPanel):
+class ImageConfigurationPanel(panel.BaseDockPanel):
     panel_name = "Image Configuration"
 
     config_changed = Signal(object)
@@ -54,6 +54,8 @@ class ImageConfigurationPanel(panel.AbstractDockPanel):
         self.cmap_combo_box.currentTextChanged.connect(self._on_config_changed)
 
     def _on_config_changed(self, _: float | str) -> None:
+        self.vmin_spinbox.setMaximum(self.vmax_spinbox.value())
+        self.vmax_spinbox.setMinimum(self.vmin_spinbox.value())
         self.config_changed.emit(self.get_config())
 
     def get_config(self) -> ImageConfig:

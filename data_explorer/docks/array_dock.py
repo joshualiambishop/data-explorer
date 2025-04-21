@@ -7,6 +7,7 @@ from PySide6.QtGui import QCloseEvent, QKeyEvent
 
 import numpy as np
 from data_explorer import primitives
+from data_explorer.docks.image_settings import ImageConfig, ImageConfigurationPanel
 
 if TYPE_CHECKING:
     from data_explorer.app import ArrayViewerApp
@@ -189,7 +190,7 @@ class ArrayDock(widgets.QDockWidget):
         self._instance_number = instance_number
 
         self._current_threshold_op: Optional[ThresholdOperation] = None
-        self._colour_cache: tuple[str, float, float] = ("", 0, 0)
+        self._colour_cache: ImageConfig = ImageConfig("gray", 0, 1)
         self.is_derived = is_derived
 
         features = (
@@ -261,36 +262,10 @@ class ArrayDock(widgets.QDockWidget):
     def _build_control_panel(self, parent_layout: widgets.QVBoxLayout) -> None:
 
         grid = widgets.QGridLayout()
-
-        self.vmin_spin = primitives.build_double_spinbox(
-            min=np.nanmin(self._array),
-            max=np.nanmax(self._array),
-            default=np.nanpercentile(self._array, 1),
-        )
-        self.vmin_spin.valueChanged.connect(self.update_clim)
-
-        self.vmax_spin = primitives.build_double_spinbox(
-            min=np.nanmin(self._array),
-            max=np.nanmax(self._array),
-            default=np.nanpercentile(self._array, 99),
-        )
-        self.vmax_spin.valueChanged.connect(self.update_clim)
-
-        self.cmap_combo = widgets.QComboBox()
-        self.cmap_combo.addItems(COLOURMAPS)
-        self.cmap_combo.currentTextChanged.connect(self.update_colormap)
-
-        colour_group = widgets.QGroupBox("Colour settings")
-        cg_layout = widgets.QHBoxLayout(colour_group)
-
-        cg_layout.addWidget(widgets.QLabel("Colormap:"))
-        cg_layout.addWidget(self.cmap_combo)
-        cg_layout.addWidget(widgets.QLabel("Min:"))
-        cg_layout.addWidget(self.vmin_spin)
-        cg_layout.addWidget(widgets.QLabel("Max:"))
-        cg_layout.addWidget(self.vmax_spin)
-
-        grid.addWidget(colour_group, 0, 0, 1, 4)
+        self.image_config_panel = ImageConfigurationPanel(self)
+        self.image_config_panel.config_changed.connect(self._apply_image_config)
+        self._apply_image_config(self.image_config_panel.get_config())
+        grid.addWidget(self.image_config_panel, 0, 0, 1, 4)
 
         self.new_threshold_button = widgets.QPushButton("Add threshold")
         self.new_threshold_button.setToolTip(
@@ -348,19 +323,12 @@ class ArrayDock(widgets.QDockWidget):
         menu.exec(global_position)
 
     def _show_threshold_form(self, operation: ThresholdOperation) -> None:
-        self._colour_cache = (
-            self.cmap_combo.currentText(),
-            self.vmin_spin.value(),
-            self.vmax_spin.value(),
+        self._colour_cache = self.image_config_panel.get_config()
+        self.image_config_panel.set_config(ImageConfig(cmap="gray", vmin=0.0, vmax=1.0))
+        self.image_config_panel.setEnabled(False)
+        self.image_config_panel.setToolTip(
+            "Cannot change while a threshold rule is active."
         )
-
-        self.vmin_spin.setValue(0)
-        self.vmax_spin.setValue(1)
-        self.cmap_combo.setCurrentText("gray")
-
-        for widget in (self.vmin_spin, self.vmax_spin, self.cmap_combo):
-            widget.setEnabled(False)
-            widget.setToolTip("Cannot change while a threshold rule is active.")
 
         self.threshold_desc_label.setText(operation.description.lower())
         self._current_threshold_op = operation
@@ -369,14 +337,10 @@ class ArrayDock(widgets.QDockWidget):
         self.set_frame(self._frame)
 
     def _cancel_threshold(self) -> None:
-        old_cmap, old_vmin, old_vmax = self._colour_cache
-        for widget in (self.vmin_spin, self.vmax_spin, self.cmap_combo):
-            widget.setEnabled(True)
-            widget.setToolTip("")
 
-        self.vmin_spin.setValue(old_vmin)
-        self.vmax_spin.setValue(old_vmax)
-        self.cmap_combo.setCurrentText(old_cmap)
+        self.image_config_panel.setEnabled(True)
+        self.image_config_panel.setToolTip("")
+        self.image_config_panel.set_config(self._colour_cache)
 
         self._current_threshold_op = None
         self.threshold_form.hide()
@@ -412,13 +376,16 @@ class ArrayDock(widgets.QDockWidget):
             image = self._current_threshold_op.calculation(image, threshold)
 
         self.image_item.setImage(image)
-        self.update_clim()
         self.sync_crosshair(self.crosshair_y.value(), self.crosshair_x.value())
 
-    def update_clim(self) -> None:
-        self.image_item.setLevels((self.vmin_spin.value(), self.vmax_spin.value()))
-        self.vmax_spin.setMinimum(self.vmin_spin.value())
-        self.vmin_spin.setMaximum(self.vmax_spin.value())
+    def _apply_image_config(self, config: ImageConfig) -> None:
+        self.image_item.setLookupTable(
+            pg.colormap.get(config.cmap, source="matplotlib").getLookupTable(
+                alpha=False
+            ),
+            update=False,
+        )
+        self.image_item.setLevels((config.vmin, config.vmax), update=True)
 
     def mouse_moved(self, pos: QPointF) -> None:
         if self.view_box.sceneBoundingRect().contains(pos):
@@ -436,11 +403,6 @@ class ArrayDock(widgets.QDockWidget):
                     + 0.5  # convert back to image terms
                 )
             )
-
-    def update_colormap(self, name: str) -> None:
-        self.image_item.setLookupTable(
-            pg.colormap.get(name, source="matplotlib").getLookupTable(alpha=False)
-        )
 
     def sync_crosshair(self, x: float, y: float) -> None:
         self.crosshair_y.setPos(x)
