@@ -22,9 +22,9 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
     config_changed = Signal(object)
 
     def _build_ui(self) -> None:
-        parent_array = self.get_parent_array_dock().get_array()
-        data_min = np.nanmin(parent_array)
-        data_max = np.nanmax(parent_array)
+        parent_dock = self.get_parent_array_dock()
+        data_min, data_max = parent_dock.get_array_bounds()
+        step_size = parent_dock.get_appropriate_step_size()
 
         top_level_layout = QtWidgets.QVBoxLayout(self)
         group = QtWidgets.QGroupBox(self.panel_name)
@@ -38,6 +38,7 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
             maximum=data_max,
             decimals=3,
             value=data_min,
+            singleStep=step_size,
         )
 
         self.vmax_spinbox = QtWidgets.QDoubleSpinBox(
@@ -45,6 +46,7 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
             maximum=data_max,
             decimals=3,
             value=data_max,
+            singleStep=step_size,
         )
 
         for label, widget in (

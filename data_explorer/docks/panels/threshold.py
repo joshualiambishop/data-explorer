@@ -35,8 +35,11 @@ class ThresholdPanel(base_panel.BaseDockPanel[Optional[ThresholdConfig]]):
     threshold_rule_changed = Signal(object)
 
     def _build_ui(self) -> None:
+        parent_dock = self.get_parent_array_dock()
+        data_min, data_max = parent_dock.get_array_bounds()
+        step_size = parent_dock.get_appropriate_step_size()
+
         self._base_config: Optional[ThresholdConfig] = None
-        parent_array = self.get_parent_array_dock().get_array()
         top_level_layout = QtWidgets.QVBoxLayout(self)
 
         self.add_threshold_button = QtWidgets.QPushButton("Add thresholding rule")
@@ -51,10 +54,11 @@ class ThresholdPanel(base_panel.BaseDockPanel[Optional[ThresholdConfig]]):
 
         self.operator_label = QtWidgets.QLabel("")
         self.threshold_spinbox = QtWidgets.QDoubleSpinBox(
-            minimum=np.nanmin(parent_array),
-            maximum=np.nanmax(parent_array),
+            minimum=data_min,
+            maximum=data_max,
             decimals=3,
-            value=np.nanpercentile(parent_array, 50),
+            value=(data_min + data_max) / 2,
+            singleStep=step_size,
         )
         self.cancel_threshold_button = QtWidgets.QPushButton("Cancel")
 

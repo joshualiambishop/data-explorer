@@ -189,6 +189,7 @@ class ArrayDock(widgets.QDockWidget):
         )
         self._title = title
         self._array = array
+        self._array_bounds = (np.nanmin(array), np.nanmax(array))
         self._frame = 0
         self._instance_number = instance_number
 
@@ -212,6 +213,13 @@ class ArrayDock(widgets.QDockWidget):
 
     def get_array(self) -> np.ndarray:
         return self._array
+
+    def get_array_bounds(self) -> tuple[float, float]:
+        return self._array_bounds
+
+    def get_appropriate_step_size(self) -> float:
+        min, max = self.get_array_bounds()
+        return (max - min) / 100.0
 
     @property
     def is_copy(self) -> bool:
