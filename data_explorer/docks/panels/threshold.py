@@ -35,7 +35,7 @@ class ThresholdPanel(base_panel.BaseDockPanel[Optional[ThresholdConfig]]):
     threshold_rule_changed = Signal(object)
 
     def _build_ui(self) -> None:
-        parent_dock = self.get_parent_array_dock()
+        parent_dock = self.get_parent_dock()
         data_min, data_max = parent_dock.get_array_bounds()
         step_size = parent_dock.get_appropriate_step_size()
 

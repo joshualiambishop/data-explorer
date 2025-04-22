@@ -22,7 +22,7 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
     config_changed = Signal(object)
 
     def _build_ui(self) -> None:
-        parent_dock = self.get_parent_array_dock()
+        parent_dock = self.get_parent_dock()
         data_min, data_max = parent_dock.get_array_bounds()
         step_size = parent_dock.get_appropriate_step_size()
 
@@ -33,21 +33,15 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
         self.cmap_combo_box = QtWidgets.QComboBox()
         self.cmap_combo_box.addItems(COLOURMAPS)
 
-        self.vmin_spinbox = QtWidgets.QDoubleSpinBox(
-            minimum=data_min,
-            maximum=data_max,
-            decimals=3,
-            value=data_min,
-            singleStep=step_size,
-        )
+        self.vmin_spinbox = QtWidgets.QDoubleSpinBox()
+        self.vmin_spinbox.setValue(data_min)
+        self.vmax_spinbox = QtWidgets.QDoubleSpinBox()
+        self.vmax_spinbox.setValue(data_max)
 
-        self.vmax_spinbox = QtWidgets.QDoubleSpinBox(
-            minimum=data_min,
-            maximum=data_max,
-            decimals=3,
-            value=data_max,
-            singleStep=step_size,
-        )
+        for spinbox in (self.vmin_spinbox, self.vmax_spinbox):
+            spinbox.setRange(data_min, data_max)
+            spinbox.setDecimals(3)
+            spinbox.setSingleStep(step_size)
 
         for label, widget in (
             ("Colourmap:", self.cmap_combo_box),
@@ -87,7 +81,7 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
         self.vmax_spinbox.setValue(config.vmax)
 
     def _set_to_data_range(self) -> None:
-        parent_array = self.get_parent_array_dock().get_array()
+        parent_array = self.get_parent_dock().get_array()
         data_vmin = np.nanmin(parent_array)
         data_vmax = np.nanmax(parent_array)
         new_config = ImageConfig(
