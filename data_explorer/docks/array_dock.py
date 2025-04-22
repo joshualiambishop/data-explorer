@@ -19,6 +19,11 @@ BORDER_COLOUR: Final[str] = "y"
 COLOURMAPS: Final[list[str]] = ["gray", "viridis", "plasma", "inferno", "magma"]
 
 
+def _safe_bounds(array: np.ndarray) -> tuple[float, float]:
+    masked_array: np.ndarray = np.ma.masked_invalid(array)
+    return float(masked_array.min()), float(masked_array.max())
+
+
 @dataclasses.dataclass
 class SimpleOperation:
     description: str
@@ -26,32 +31,11 @@ class SimpleOperation:
     calculation: Callable[[np.ndarray, np.ndarray], np.ndarray]
 
 
-@dataclasses.dataclass
-class ThresholdOperation:
-    description: str
-    operator: Optional[str]
-    calculation: Callable[[np.ndarray, float], np.ndarray]
-
-
 TWO_PIECE_OPERATIONS: Final[list[SimpleOperation]] = [
     SimpleOperation("Difference", "-", lambda a, b: a - b),
     SimpleOperation("Division", "/", lambda a, b: a / b),
     SimpleOperation("Sum", "+", lambda a, b: a + b),
 ]
-THRESHOLD_OPERATIONS: Final[list[ThresholdOperation]] = [
-    ThresholdOperation("Greater than", ">", lambda array, threshold: array > threshold),
-    ThresholdOperation("Less than", "<", lambda array, threshold: array < threshold),
-    ThresholdOperation(
-        "Greater or equal to", ">=", lambda array, threshold: array >= threshold
-    ),
-    ThresholdOperation(
-        "Less or equal to", "<=", lambda array, threshold: array <= threshold
-    ),
-    ThresholdOperation("Equal to", "==", lambda array, threshold: array == threshold),
-]
-_IDENTITY: Final[ThresholdOperation] = ThresholdOperation(
-    "IDENTITY", "-", lambda array, threshold: array
-)
 
 
 class OperationPanel(widgets.QWidget):
@@ -149,14 +133,14 @@ class OperationPanel(widgets.QWidget):
             for d in self.parent_app.get_original_docks()
             if d.get_title() == b_title
         )
-        try:
-            with np.errstate(divide="raise", invalid="raise"):
-                new_arr = self.current_op.calculation(a_arr, b_arr)
-            if np.isnan(new_arr).any() or np.isinf(new_arr).any():
-                raise FloatingPointError("Result contains NaNs or infinities.")
-        except FloatingPointError as e:
-            widgets.QMessageBox.warning(self, "Calculation error", str(e))
-            return
+
+        with np.errstate(divide="ignore"):
+            new_arr = self.current_op.calculation(a_arr, b_arr)
+        if np.isnan(new_arr).any() or np.isinf(new_arr).any():
+            widgets.QMessageBox.warning(
+                self, "Calcuation warning", "NaNs and/or infinities may be present"
+            )
+
         new_title = f"{a_title} {self.current_op.operator} {b_title}"
         self.parent_app._add_array(array=new_arr, title=new_title, is_derived=True)
         self._reset()
@@ -189,7 +173,7 @@ class ArrayDock(widgets.QDockWidget):
         )
         self._title = title
         self._array = array
-        self._array_bounds = (np.nanmin(array), np.nanmax(array))
+        self._array_bounds = _safe_bounds(array)
         self._frame = 0
         self._instance_number = instance_number
 

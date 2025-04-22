@@ -144,9 +144,9 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.crosshair_cb.setToolTip("Show/hide the crosshair and value overlays")
         self.crosshair_cb.stateChanged.connect(self.toggle_crosshair_visbility)
 
-        self.frame_spin = widgets.QSpinBox(
-            singleStep=1, minimum=0, maximum=self.num_frames
-        )
+        self.frame_spin = widgets.QSpinBox()
+        self.frame_spin.setSingleStep(1)
+        self.frame_spin.setRange(0, self.num_frames)
         self.frame_spin.setFixedWidth(60)
         self.frame_spin.valueChanged.connect(lambda i: self.slider.setValue(i))
 
@@ -230,7 +230,7 @@ if __name__ == "__main__":
     a = np.random.randn(100, 64, 128).astype(np.float32).cumsum(0)
     b = np.random.randn(100, 64, 128).astype(np.float32).cumsum(0)
     b[0, 32, 62] = 20
-    b[0, 0, 0] = -20
+    b[0, 0, 0] = 0
     launch_viewer([a, b], ["Random A", "Random B"])
 
 
