@@ -165,8 +165,12 @@ class ArrayViewerApp(widgets.QMainWindow):
 
         footer_layout.addLayout(control_layout)
         footer_layout.addWidget(self.operation_panel)
-
         top_level_layout.addWidget(footer)
+        self.central.setSizePolicy(
+            widgets.QSizePolicy.Policy.Expanding,  # horizontal
+            widgets.QSizePolicy.Policy.Fixed,  # vertical
+        )
+        self.central.setFixedHeight(self.central.sizeHint().height())
 
     def toggle_crosshair_visbility(self, state: Qt.CheckState) -> None:
         for dock in self.docks:
