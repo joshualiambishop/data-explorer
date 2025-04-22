@@ -4,7 +4,7 @@ from typing import List, Optional, Sequence
 
 import numpy as np
 import PySide6.QtWidgets as widgets
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, QTimer, Signal, QSignalBlocker
 from PySide6.QtGui import QKeyEvent
 from data_explorer.docks.array_dock import ArrayDock, OperationPanel
 
@@ -21,7 +21,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.num_frames = arrays[0].shape[0]
         self.docks: List[ArrayDock] = []
         self.dock_instances: dict[str, int] = {}
-        self.frame_label = widgets.QLabel()
+
         self._init_ui()
 
         self.new_array_added.connect(self.on_new_array_added)
@@ -144,11 +144,17 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.crosshair_cb.setToolTip("Show/hide the crosshair and value overlays")
         self.crosshair_cb.stateChanged.connect(self.toggle_crosshair_visbility)
 
+        self.frame_spin = widgets.QSpinBox(
+            singleStep=1, minimum=0, maximum=self.num_frames
+        )
+        self.frame_spin.setFixedWidth(60)
+        self.frame_spin.valueChanged.connect(lambda i: self.slider.setValue(i))
+
         control_layout = widgets.QVBoxLayout(self.central)
         control_row = widgets.QHBoxLayout()
         control_row.addWidget(widgets.QLabel("Frame:"))
         control_row.addWidget(self.slider)
-        control_row.addWidget(self.frame_label)
+        control_row.addWidget(self.frame_spin)
         control_row.addWidget(self.play_button)
         control_row.addWidget(widgets.QLabel("FPS:"))
         control_row.addWidget(self.fps_spinner)
@@ -177,7 +183,8 @@ class ArrayViewerApp(widgets.QMainWindow):
             dock.set_crosshair_visbility(state == Qt.CheckState.Checked.value)
 
     def update_frames(self, frame: int) -> None:
-        self.frame_label.setText(f"{frame+1}/{self.num_frames}")
+        with QSignalBlocker(self.frame_spin):
+            self.frame_spin.setValue(frame)
         for dock in self.docks:
             dock.set_frame(frame)
 
