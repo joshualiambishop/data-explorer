@@ -1,4 +1,3 @@
-from __future__ import annotations
 import dataclasses
 from typing import Callable, Final, Optional, TYPE_CHECKING
 import pyqtgraph as pg  # type: ignore[import-untyped]
@@ -27,11 +26,32 @@ class SimpleOperation:
     calculation: Callable[[np.ndarray, np.ndarray], np.ndarray]
 
 
+@dataclasses.dataclass
+class ThresholdOperation:
+    description: str
+    operator: Optional[str]
+    calculation: Callable[[np.ndarray, float], np.ndarray]
+
+
 TWO_PIECE_OPERATIONS: Final[list[SimpleOperation]] = [
     SimpleOperation("Difference", "-", lambda a, b: a - b),
     SimpleOperation("Division", "/", lambda a, b: a / b),
     SimpleOperation("Sum", "+", lambda a, b: a + b),
 ]
+THRESHOLD_OPERATIONS: Final[list[ThresholdOperation]] = [
+    ThresholdOperation("Greater than", ">", lambda array, threshold: array > threshold),
+    ThresholdOperation("Less than", "<", lambda array, threshold: array < threshold),
+    ThresholdOperation(
+        "Greater or equal to", ">=", lambda array, threshold: array >= threshold
+    ),
+    ThresholdOperation(
+        "Less or equal to", "<=", lambda array, threshold: array <= threshold
+    ),
+    ThresholdOperation("Equal to", "==", lambda array, threshold: array == threshold),
+]
+_IDENTITY: Final[ThresholdOperation] = ThresholdOperation(
+    "IDENTITY", "-", lambda array, threshold: array
+)
 
 
 class OperationPanel(widgets.QWidget):
