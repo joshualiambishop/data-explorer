@@ -34,14 +34,15 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
         self.cmap_combo_box.addItems(COLOURMAPS)
 
         self.vmin_spinbox = QtWidgets.QDoubleSpinBox()
-        self.vmin_spinbox.setValue(data_min)
         self.vmax_spinbox = QtWidgets.QDoubleSpinBox()
-        self.vmax_spinbox.setValue(data_max)
 
         for spinbox in (self.vmin_spinbox, self.vmax_spinbox):
             spinbox.setRange(data_min, data_max)
             spinbox.setDecimals(3)
             spinbox.setSingleStep(step_size)
+
+        self.vmin_spinbox.setValue(data_min)
+        self.vmax_spinbox.setValue(data_max)
 
         for label, widget in (
             ("Colourmap:", self.cmap_combo_box),
