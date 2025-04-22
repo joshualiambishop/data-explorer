@@ -1,8 +1,10 @@
+from __future__ import annotations
 import dataclasses
 from typing import Callable, Final, Optional
 from data_explorer.docks.panels import base_panel
 from PySide6 import QtWidgets
-from PySide6.QtCore import Signal, QSignalBlocker
+from PySide6.QtCore import QSignalBlocker
+from data_explorer.qt_typing import Signal
 import numpy as np
 
 
@@ -32,7 +34,7 @@ THRESHOLD_CONFIGS: Final[list[ThresholdConfig]] = [
 class ThresholdPanel(base_panel.BaseDockPanel[Optional[ThresholdConfig]]):
     panel_name = "Threshold"
 
-    threshold_rule_changed = Signal(object)
+    threshold_rule_changed: Signal[Optional[ThresholdConfig]] = Signal(object)
 
     def _build_ui(self) -> None:
         parent_dock = self.get_parent_dock()
@@ -53,13 +55,13 @@ class ThresholdPanel(base_panel.BaseDockPanel[Optional[ThresholdConfig]]):
         form_layout = QtWidgets.QHBoxLayout(self.threshold_form)
 
         self.operator_label = QtWidgets.QLabel("")
-        self.threshold_spinbox = QtWidgets.QDoubleSpinBox(
-            minimum=data_min,
-            maximum=data_max,
-            decimals=3,
-            value=(data_min + data_max) / 2,
-            singleStep=step_size,
-        )
+
+        self.threshold_spinbox = QtWidgets.QDoubleSpinBox()
+        self.threshold_spinbox.setRange(data_min, data_max)
+        self.threshold_spinbox.setDecimals(3)
+        self.threshold_spinbox.setValue((data_min + data_max) / 2)
+        self.threshold_spinbox.setSingleStep(step_size)
+
         self.cancel_threshold_button = QtWidgets.QPushButton("Cancel")
 
         for widget in (
@@ -78,7 +80,8 @@ class ThresholdPanel(base_panel.BaseDockPanel[Optional[ThresholdConfig]]):
         self.cancel_threshold_button.clicked.connect(self._clear_threshold)
 
     def _show_selection_menu(self) -> None:
-        menu = QtWidgets.QMenu(self, title="Select thresholding operation")
+        menu = QtWidgets.QMenu(self)
+        menu.setTitle("Select thresholding operation")
         for config in THRESHOLD_CONFIGS:
             action = menu.addAction(config.description)
             action.triggered.connect(
