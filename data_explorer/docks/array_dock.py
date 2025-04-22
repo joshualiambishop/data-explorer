@@ -303,13 +303,11 @@ class ArrayDock(widgets.QDockWidget):
                 "Cannot change while a threshold rule is active."
             )
         else:
-            assert (
-                self._previous_colour_config is not None
-            ), "No colour to revert to on cancel."
             self._current_image_op = lambda x: x
             self.image_config_panel.setEnabled(True)
             self.image_config_panel.setToolTip("")
-            self.image_config_panel.set_config(self._previous_colour_config)
+            if self._previous_colour_config is not None:
+                self.image_config_panel.set_config(self._previous_colour_config)
             self._previous_colour_config = None
         self.set_frame(self._frame)
 

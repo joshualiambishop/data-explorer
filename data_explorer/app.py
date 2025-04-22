@@ -41,7 +41,7 @@ class ArrayViewerApp(widgets.QMainWindow):
                 f"Array provided has shape {array.shape}, but it must be same as others ({self._enforced_shape})."
             )
 
-    def _add_array(self, array: np.ndarray, title: str, is_derived: bool) -> None:
+    def _add_array(self, array: np.ndarray, title: str, is_derived: bool) -> ArrayDock:
         self._validate_shape_of(array)
         self.dock_instances[title] = self.dock_instances.get(title, 0) + 1
         dock = ArrayDock(
@@ -66,6 +66,7 @@ class ArrayViewerApp(widgets.QMainWindow):
             | Qt.DockWidgetArea.LeftDockWidgetArea
         )
         self.new_array_added.emit()
+        return dock
 
     def register_array(self, array: np.ndarray, title: str) -> "ArrayViewerApp":
         self._add_array(array, title, is_derived=False)
@@ -104,7 +105,11 @@ class ArrayViewerApp(widgets.QMainWindow):
             super().keyPressEvent(event)
 
     def duplicate_dock(self, dock: ArrayDock) -> None:
-        self._add_array(dock.get_array(), title=dock.get_title(), is_derived=False)
+        new_dock = self._add_array(
+            dock.get_array(), title=dock.get_title(), is_derived=False
+        )
+        new_dock.image_config_panel.set_config(dock.image_config_panel.get_config())
+        new_dock.threshold_panel.set_config(dock.threshold_panel.get_config())
 
     def get_original_docks(self) -> list[ArrayDock]:
         return [dock for dock in self.docks if not dock.is_copy]
