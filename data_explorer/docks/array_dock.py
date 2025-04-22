@@ -11,6 +11,7 @@ from data_explorer.docks.panels.image_configuration import (
     ImageConfig,
     ImageConfigurationPanel,
 )
+from data_explorer.docks.panels.threshold import ThresholdConfig, ThresholdPanel
 
 if TYPE_CHECKING:
     from data_explorer.app import ArrayViewerApp
@@ -192,8 +193,8 @@ class ArrayDock(widgets.QDockWidget):
         self._frame = 0
         self._instance_number = instance_number
 
-        self._current_threshold_op: Optional[ThresholdOperation] = None
-        self._colour_cache: ImageConfig = ImageConfig("gray", 0, 1)
+        self._current_image_op: Callable[[np.ndarray], np.ndarray] = lambda x: x
+        self._previous_colour_config: Optional[ImageConfig] = None
         self.is_derived = is_derived
 
         features = (
@@ -270,36 +271,12 @@ class ArrayDock(widgets.QDockWidget):
         self._apply_image_config(self.image_config_panel.get_config())
         grid.addWidget(self.image_config_panel, 0, 0, 1, 4)
 
-        self.new_threshold_button = widgets.QPushButton("Add threshold")
-        self.new_threshold_button.setToolTip(
-            "Create a new rule to threshold the image (reversible)"
+        self.threshold_panel = ThresholdPanel(self)
+        self.threshold_panel.threshold_rule_changed.connect(
+            self._on_threshold_rule_changed
         )
-        self.new_threshold_button.clicked.connect(self._show_threshold_menu)
-        grid.addWidget(self.new_threshold_button, 2, 0, 1, 3)
 
-        # 2.5.b: Threshold form (hidden until operation chosen)
-        self.threshold_form = widgets.QWidget()
-        tf_layout = widgets.QHBoxLayout(self.threshold_form)
-        self.threshold_desc_label = widgets.QLabel("")
-
-        self.threshold_value_spin = primitives.build_double_spinbox(
-            min=np.nanmin(self._array),
-            max=np.nanmax(self._array),
-            default=np.nanpercentile(self._array, 50),
-        )
-        self.threshold_cancel_btn = widgets.QPushButton("Cancel")
-        tf_layout.addWidget(widgets.QLabel("Threshold values "))
-        tf_layout.addWidget(self.threshold_desc_label)
-        tf_layout.addWidget(self.threshold_value_spin)
-        tf_layout.addWidget(self.threshold_cancel_btn)
-
-        grid.addWidget(self.threshold_form, 2, 0, 1, 3)
-        self.threshold_form.hide()
-
-        self.threshold_cancel_btn.clicked.connect(self._cancel_threshold)
-        self.threshold_value_spin.valueChanged.connect(
-            lambda: self.set_frame(self._frame)
-        )
+        grid.addWidget(self.threshold_panel, 2, 0, 1, 3)
 
         self.reset_view_btn = widgets.QPushButton("Reset View")
         self.reset_view_btn.setToolTip("Reset pan/zoom to show the full image")
@@ -313,41 +290,28 @@ class ArrayDock(widgets.QDockWidget):
 
         parent_layout.addLayout(grid)
 
-    def _show_threshold_menu(self) -> None:
-        menu = widgets.QMenu(self, title="Threshold operation")
-        for operation in THRESHOLD_OPERATIONS:
-            action = menu.addAction(operation.description)
-            action.triggered.connect(
-                lambda checked, op=operation: self._show_threshold_form(op)
+    def _on_threshold_rule_changed(self, rule: Optional[ThresholdConfig]) -> None:
+        if rule is not None:
+            if self._previous_colour_config is None:
+                self._previous_colour_config = self.image_config_panel.get_config()
+            self._current_image_op = rule.threshold_array
+
+            self.image_config_panel.set_config(
+                ImageConfig(cmap="gray", vmin=0.0, vmax=1.0)
             )
-        global_position = self.new_threshold_button.mapToGlobal(
-            self.new_threshold_button.rect().bottomLeft()
-        )
-        menu.exec(global_position)
-
-    def _show_threshold_form(self, operation: ThresholdOperation) -> None:
-        self._colour_cache = self.image_config_panel.get_config()
-        self.image_config_panel.set_config(ImageConfig(cmap="gray", vmin=0.0, vmax=1.0))
-        self.image_config_panel.setEnabled(False)
-        self.image_config_panel.setToolTip(
-            "Cannot change while a threshold rule is active."
-        )
-
-        self.threshold_desc_label.setText(operation.description.lower())
-        self._current_threshold_op = operation
-        self.new_threshold_button.hide()
-        self.threshold_form.show()
-        self.set_frame(self._frame)
-
-    def _cancel_threshold(self) -> None:
-
-        self.image_config_panel.setEnabled(True)
-        self.image_config_panel.setToolTip("")
-        self.image_config_panel.set_config(self._colour_cache)
-
-        self._current_threshold_op = None
-        self.threshold_form.hide()
-        self.new_threshold_button.show()
+            self.image_config_panel.setEnabled(False)
+            self.image_config_panel.setToolTip(
+                "Cannot change while a threshold rule is active."
+            )
+        else:
+            assert (
+                self._previous_colour_config is not None
+            ), "No colour to revert to on cancel."
+            self._current_image_op = lambda x: x
+            self.image_config_panel.setEnabled(True)
+            self.image_config_panel.setToolTip("")
+            self.image_config_panel.set_config(self._previous_colour_config)
+            self._previous_colour_config = None
         self.set_frame(self._frame)
 
     def on_duplicate_pressed(self) -> None:
@@ -373,10 +337,7 @@ class ArrayDock(widgets.QDockWidget):
 
     def set_frame(self, frame: int) -> None:
         self._frame = frame
-        image = self._array[self._frame].T
-        if self._current_threshold_op is not None:
-            threshold = self.threshold_value_spin.value()
-            image = self._current_threshold_op.calculation(image, threshold)
+        image = self._current_image_op(self._array[self._frame].T)
 
         self.image_item.setImage(image)
         self._apply_image_config(self.image_config_panel.get_config())
@@ -418,10 +379,7 @@ class ArrayDock(widgets.QDockWidget):
 
         ix, iy = int(x), int(y)
         try:
-            image = self._array[self._frame]
-            if self._current_threshold_op is not None:
-                threshold = self.threshold_value_spin.value()
-                image = self._current_threshold_op.calculation(image, threshold)
+            image = self._current_image_op(self._array[self._frame])
 
             value = image[iy, ix]
 
