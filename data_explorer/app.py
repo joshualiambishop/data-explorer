@@ -1,15 +1,11 @@
-import dataclasses
 import multiprocessing
 import sys
-from typing import Callable, Final, List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 import numpy as np
-import pyqtgraph as pg  # type: ignore[import-untyped]
 import PySide6.QtWidgets as widgets
-from PySide6.QtCore import QPointF, Qt, QTimer, Signal
-from PySide6.QtGui import QCloseEvent, QKeyEvent
-import numpy.typing as npt
-from data_explorer import primitives
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QKeyEvent
 from data_explorer.docks.array_dock import ArrayDock, OperationPanel
 
 
@@ -230,5 +226,3 @@ if __name__ == "__main__":
 # Accept either full np.ndarray or Callable[[frame], np.ndarray] via a FrameProvider descriptor.
 
 # Auto‑generate any extra parameter widgets at launch.
-
-# refactor for panel classes.

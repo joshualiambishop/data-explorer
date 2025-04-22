@@ -2,11 +2,10 @@ import dataclasses
 from typing import Callable, Final, Optional, TYPE_CHECKING
 import pyqtgraph as pg  # type: ignore[import-untyped]
 import PySide6.QtWidgets as widgets
-from PySide6.QtCore import QPointF, Qt, QTimer, Signal
-from PySide6.QtGui import QCloseEvent, QKeyEvent
+from PySide6.QtCore import QPointF, Qt, Signal
+from PySide6.QtGui import QCloseEvent
 
 import numpy as np
-from data_explorer import primitives
 from data_explorer.docks.panels.image_configuration import (
     ImageConfig,
     ImageConfigurationPanel,
