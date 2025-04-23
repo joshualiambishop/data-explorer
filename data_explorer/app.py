@@ -204,26 +204,16 @@ class ArrayViewerApp(widgets.QMainWindow):
             dock.sync_crosshair(x, y)
 
 
-def _launch_viewer(arrays: List[np.ndarray], titles: List[str]) -> None:
-    app = widgets.QApplication(sys.argv)
-    viewer = ArrayViewerApp(
-        arrays,
-        titles,
-    )
+def launch_viewer(arrays: Sequence[np.ndarray], titles: Sequence[str]) -> None:
+    # reuse a running QApplication if present
+    app = widgets.QApplication.instance() or widgets.QApplication(sys.argv)
+    viewer = ArrayViewerApp(arrays, titles)
     viewer.setWindowTitle("3D Array Viewer")
     viewer.resize(1200, 800)
     viewer.show()
-    viewer.setFocus()
-    sys.exit(app.exec())
-
-
-def launch_viewer(arrays: List[np.ndarray], titles: List[str]) -> None:
-    if __name__ == "__main__":
-        _launch_viewer(arrays, titles)
-    else:
-        ctx = multiprocessing.get_context("spawn")
-        proc = ctx.Process(target=_launch_viewer, args=(arrays, titles))
-        proc.start()
+    # only start exec if we created the app and we’re in a script
+    if not app.closingDown() and __name__ == "__main__":
+        sys.exit(app.exec())
 
 
 if __name__ == "__main__":
