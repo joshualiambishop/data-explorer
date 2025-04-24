@@ -133,7 +133,12 @@ class ArrayViewerApp(widgets.QMainWindow):
             dock.get_array(), title=dock.get_title(), is_derived=False
         )
         new_dock.image_config_panel.set_config(dock.image_config_panel.get_config())
+        new_dock.image_config_panel.set_visibility(
+            dock.image_config_panel.get_visbility()
+        )
+
         new_dock.threshold_panel.set_config(dock.threshold_panel.get_config())
+        new_dock.threshold_panel.set_visibility(dock.threshold_panel.get_visbility())
 
     def get_original_docks(self) -> list[ArrayDock]:
         return [dock for dock in self.docks if not dock.is_copy]

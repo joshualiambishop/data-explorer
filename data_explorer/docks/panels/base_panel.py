@@ -48,9 +48,10 @@ class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
             flat=True,  # don't show the border
         )
         self._parent_dock = parent_dock
+        self._current_visbility = False
 
         main_layout = QtWidgets.QHBoxLayout(self)
-        self.toggled.connect(self.on_toggle_visibility)
+        self.toggled.connect(self.set_visibility)
 
         # Body to be overridden by subclasses
         self._panel_body = QtWidgets.QWidget(self)
@@ -77,16 +78,20 @@ class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
         )
 
         self._connect_signals()
-        self.on_toggle_visibility(False)
+        self.set_visibility(False)
 
     def get_parent_dock(self) -> "ArrayDock":
         return self._parent_dock
 
     @Slot(bool)
-    def on_toggle_visibility(self, visible: bool) -> None:
+    def set_visibility(self, visible: bool) -> None:
         self._buttons.setVisible(visible)
         self._panel_body.setVisible(visible)
         self.setFlat(not visible)
+        self._current_visbility = visible
+
+    def get_visbility(self) -> bool:
+        return self._current_visbility
 
     def _build_ui(self, parent: QtWidgets.QWidget) -> None:
         """For neateness, a method for building the UI elements only."""
