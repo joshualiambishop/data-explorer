@@ -9,61 +9,55 @@ if TYPE_CHECKING:
 Config_T = TypeVar("Config_T")
 
 
-class BaseDockPanel(QtWidgets.QWidget, Generic[Config_T]):
+class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
 
     panel_name: str
 
     def __init__(self, parent_dock: "ArrayDock") -> None:
-        super().__init__(parent_dock)
+        super().__init__(self.panel_name, parent_dock)
+        self.setCheckable(True)
+        self.setChecked(False)
+        self.setFlat(True)
+
+        main_layout = QtWidgets.QHBoxLayout(self)
+        self.toggled.connect(self.on_toggle_visibility)
+
         self._parent_dock = parent_dock
 
-        header = QtWidgets.QHBoxLayout()
-        header.setContentsMargins(0, 0, 0, 0)
-        header.setSpacing(4)
-
-        self._toggle_button = QtWidgets.QToolButton()
-        self._toggle_button.setCheckable(True)
-        self._toggle_button.setChecked(False)
-        self._toggle_button.setArrowType(Qt.ArrowType.RightArrow)
-
-        label = QtWidgets.QLabel(self.panel_name)
+        # Body to be overridden by subclasses
+        self._panel_body = QtWidgets.QWidget(self)
+        main_layout.addWidget(self._panel_body, stretch=1)
+        self._build_ui(self._panel_body)
 
         self._copy_button = QtWidgets.QPushButton("⧉")
         self._paste_button = QtWidgets.QPushButton("⇩")
 
-        header.addWidget(self._toggle_button)
-        header.addWidget(label, stretch=1)
+        self._buttons = QtWidgets.QWidget()
+        button_layout = QtWidgets.QVBoxLayout(self._buttons)
+
         for button in (
             self._copy_button,
             self._paste_button,
         ):
-            button.setFixedSize(20, 20)
-            header.addWidget(button, stretch=0, alignment=Qt.AlignmentFlag.AlignRight)
+            # button.setFixedSize(20, 20)
+            button_layout.addWidget(
+                button, stretch=0, alignment=Qt.AlignmentFlag.AlignRight
+            )
 
-        # Body to be overridden by subclasses
-        self._panel_body = QtWidgets.QWidget(self)
-        self._panel_body.setVisible(False)
-
-        main = QtWidgets.QVBoxLayout(self)
-        main.setContentsMargins(0, 0, 0, 0)
-        main.setSpacing(2)
-        main.addLayout(header)
-        main.addWidget(self._panel_body)
-
-        self._toggle_button.toggled.connect(self.on_toggle_visbility)
-
-        self._build_ui(self._panel_body)
+        main_layout.addWidget(
+            self._buttons,
+        )
 
         self._connect_signals()
+        self.on_toggle_visibility(False)
 
     def get_parent_dock(self) -> "ArrayDock":
         return self._parent_dock
 
-    def on_toggle_visbility(self, visible: bool) -> None:
+    def on_toggle_visibility(self, visible: bool) -> None:
+        self._buttons.setVisible(visible)
         self._panel_body.setVisible(visible)
-        self._toggle_button.setArrowType(
-            Qt.ArrowType.DownArrow if visible else Qt.ArrowType.RightArrow
-        )
+        self.setFlat(not visible)
 
     def _build_ui(self, parent: QtWidgets.QWidget) -> None:
         """For neateness, a method for building the UI elements only."""
