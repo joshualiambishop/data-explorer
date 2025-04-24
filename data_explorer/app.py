@@ -5,7 +5,7 @@ from typing import List, Optional, Sequence
 import numpy as np
 import PySide6.QtWidgets as widgets
 from PySide6.QtCore import Qt, QTimer, Signal, QSignalBlocker
-from PySide6.QtGui import QKeyEvent
+from PySide6.QtGui import QKeyEvent, QKeySequence, QShortcut
 from data_explorer.docks.array_dock import ArrayDock, OperationPanel
 
 
@@ -23,7 +23,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.dock_instances: dict[str, int] = {}
 
         self._init_ui()
-
+        self._register_keyboard_shortcuts()
         self.num_array_changed.connect(self.on_num_array_changed)
         for array, title in zip(arrays, titles):
             self.register_array(array, title)
@@ -32,6 +32,31 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.timer = QTimer()
         self.timer.timeout.connect(self.advance_frame)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+    def _register_keyboard_shortcuts(self) -> None:
+        for key, action in [
+            (Qt.Key.Key_Space, lambda: (self.play_button.toggle(), self.toggle_play())),  # type: ignore[func-returns-value]
+            (
+                Qt.Key.Key_Right,
+                lambda: self.slider.setValue(
+                    min(self.slider.value() + 1, self.num_frames - 1)
+                ),
+            ),
+            (
+                Qt.Key.Key_Left,
+                lambda: self.slider.setValue(max(self.slider.value() - 1, 0)),
+            ),
+            (
+                Qt.Key.Key_C,
+                lambda: self.crosshair_cb.setChecked(not self.crosshair_cb.isChecked()),
+            ),
+        ]:
+            shortcut = QShortcut(
+                QKeySequence(key),
+                self,
+                context=Qt.ShortcutContext.ApplicationShortcut,
+            )
+            shortcut.activated.connect(action)
 
     def _validate_shape_of(self, array: np.ndarray) -> None:
         if self._enforced_shape is None:
@@ -85,25 +110,6 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.docks.remove(dock)
         self.dock_instances[dock.get_title()] -= 1
         self.num_array_changed.emit()
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-
-        key_pressed = event.key()
-        if key_pressed == Qt.Key.Key_Space:
-            self.play_button.toggle()
-            self.toggle_play()
-        elif key_pressed == Qt.Key.Key_Right:
-            # next frame
-            self.slider.setValue(min(self.slider.value() + 1, self.num_frames - 1))
-        elif key_pressed == Qt.Key.Key_Left:
-            # previous frame
-            self.slider.setValue(max(self.slider.value() - 1, 0))
-
-        elif key_pressed == Qt.Key.Key_C:
-            self.crosshair_cb.setChecked(not self.crosshair_cb.isChecked())
-
-        else:
-            super().keyPressEvent(event)
 
     def duplicate_dock(self, dock: ArrayDock) -> None:
         new_dock = self._add_array(
