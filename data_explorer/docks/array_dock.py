@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from data_explorer.app import ArrayViewerApp
 
 BORDER_COLOUR: Final[str] = "y"
-COLOURMAPS: Final[list[str]] = ["gray", "viridis", "plasma", "inferno", "magma"]
 
 
 def _safe_bounds(array: np.ndarray) -> tuple[float, float]:
