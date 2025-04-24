@@ -167,6 +167,7 @@ class ArrayViewerApp(widgets.QMainWindow):
 
         self.sync_view_checkbox = widgets.QCheckBox("Sync view")
         self.sync_view_checkbox.setToolTip("Synchronise pan and zoom across all docks.")
+        self.sync_view_checkbox.setChecked(True)
 
         control_layout = widgets.QVBoxLayout(self.central)
         control_row = widgets.QHBoxLayout()
