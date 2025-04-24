@@ -6,6 +6,7 @@ from PySide6.QtCore import QPointF, Qt, Signal
 from PySide6.QtGui import QCloseEvent
 
 import numpy as np
+from data_explorer import custom_widgets
 from data_explorer.docks.panels.image_configuration import (
     ImageConfig,
     ImageConfigurationPanel,
@@ -219,8 +220,8 @@ class ArrayDock(widgets.QDockWidget):
         self.main_widget.setLayout(layout)
 
         self.image_item = pg.ImageItem()
-
-        self.view_box = self.layout_widget.ci.addViewBox(lockAspect=True)
+        self.view_box = custom_widgets.UserSyncViewBox(lockAspect=True)
+        self.layout_widget.ci.addItem(self.view_box)
         self.view_box.addItem(self.image_item)
 
         _, height, width = self._array.shape
@@ -313,6 +314,7 @@ class ArrayDock(widgets.QDockWidget):
 
     def on_reset_view(self) -> None:
         self.view_box.autoRange()
+        self.view_box.user_changed_view.emit()
 
     def set_crosshair_visbility(self, visible: bool) -> None:
         for item in (

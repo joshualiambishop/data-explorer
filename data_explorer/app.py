@@ -93,7 +93,9 @@ class ArrayViewerApp(widgets.QMainWindow):
         dock.update_cursor_signal.connect(self.broadcast_cursor)
         dock.create_duplicate_signal.connect(self.duplicate_dock)
         dock.close_signal.connect(self._remove_dock)
-        dock.view_box.sigRangeChanged.connect(lambda *_args: self._sync_view_to(dock))
+        dock.view_box.user_changed_view.connect(
+            lambda dock_to_align=dock: self._sync_view_to(dock_to_align)
+        )
 
         self.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dock)
         dock.setAllowedAreas(
