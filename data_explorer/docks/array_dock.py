@@ -1,8 +1,9 @@
 import dataclasses
 from typing import Callable, Final, Optional, TYPE_CHECKING
+
 import pyqtgraph as pg  # type: ignore[import-untyped]
 import PySide6.QtWidgets as widgets
-from PySide6.QtCore import QPointF, Qt, Signal
+from PySide6.QtCore import QPointF, Qt, Signal, Slot
 from PySide6.QtGui import QCloseEvent
 
 import numpy as np
@@ -88,9 +89,10 @@ class OperationPanel(widgets.QWidget):
         self.form_panel.hide()
 
         self.cancel_btn.clicked.connect(self._reset)
-        self.create_btn.clicked.connect(self._create)
+        self.create_btn.clicked.connect(self._create_new_array)
         self.combo_a.currentTextChanged.connect(self._filter_combo_b)
 
+    @Slot(SimpleOperation)
     def _show_form(self, operation: SimpleOperation) -> None:
 
         titles = [dock.get_title() for dock in self.parent_app.get_original_docks()]
@@ -103,6 +105,7 @@ class OperationPanel(widgets.QWidget):
         self.buttons_panel.hide()
         self.form_panel.show()
 
+    @Slot(str)
     def _filter_combo_b(self, selected_title: str) -> None:
         available_titles = [
             title
@@ -116,11 +119,13 @@ class OperationPanel(widgets.QWidget):
         if current in available_titles:
             self.combo_b.setCurrentText(current)
 
+    @Slot()
     def _reset(self) -> None:
         self.form_panel.hide()
         self.buttons_panel.show()
 
-    def _create(self) -> None:
+    @Slot()
+    def _create_new_array(self) -> None:
         a_title = self.combo_a.currentText()
         b_title = self.combo_b.currentText()
         a_arr = next(
@@ -159,8 +164,8 @@ class ArrayDock(widgets.QDockWidget):
 
     # These signals are controlled globally or require synchronisation
     update_cursor_signal = Signal(float, float)
-    create_duplicate_signal = Signal(object)
-    close_signal = Signal(object)
+    create_duplicate_signal = Signal(object)  # self
+    close_signal = Signal(object)  # self
 
     def __init__(
         self, array: np.ndarray, title: str, instance_number: int, is_derived: bool
@@ -291,6 +296,7 @@ class ArrayDock(widgets.QDockWidget):
 
         parent_layout.addLayout(layout)
 
+    @Slot(object)  # No support for Optional
     def _on_threshold_rule_changed(self, rule: Optional[ThresholdConfig]) -> None:
         if rule is not None:
             if self._previous_colour_config is None:
@@ -313,13 +319,16 @@ class ArrayDock(widgets.QDockWidget):
             self._previous_colour_config = None
         self.set_frame(self._frame)
 
+    @Slot()
     def on_duplicate_pressed(self) -> None:
         self.create_duplicate_signal.emit(self)
 
+    @Slot()
     def on_reset_view(self) -> None:
         self.view_box.autoRange()
         self.view_box.user_changed_view.emit()
 
+    @Slot(bool)
     def set_crosshair_visbility(self, visible: bool) -> None:
         for item in (
             self.crosshair_x,
@@ -330,6 +339,7 @@ class ArrayDock(widgets.QDockWidget):
         ):
             item.setVisible(visible)
 
+    @Slot(QCloseEvent)
     def closeEvent(self, event: QCloseEvent) -> None:
         # We must send a signal out on destruction to close any references.
         self.close_signal.emit(self)
@@ -352,6 +362,7 @@ class ArrayDock(widgets.QDockWidget):
         )
         self.image_item.setLevels((config.vmin, config.vmax), update=True)
 
+    @Slot(QPointF)
     def mouse_moved(self, pos: QPointF) -> None:
         if self.view_box.sceneBoundingRect().contains(pos):
             mouse_point = self.view_box.mapSceneToView(pos)
@@ -369,6 +380,7 @@ class ArrayDock(widgets.QDockWidget):
                 )
             )
 
+    @Slot(float, float)
     def sync_crosshair(self, x: float, y: float) -> None:
         self.crosshair_y.setPos(x)
         self.crosshair_x.setPos(y)

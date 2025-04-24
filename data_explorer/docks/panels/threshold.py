@@ -2,7 +2,7 @@ import dataclasses
 from typing import Callable, Final, Optional
 from data_explorer.docks.panels import base_panel
 from PySide6 import QtWidgets
-from PySide6.QtCore import Signal, QSignalBlocker
+from PySide6.QtCore import Signal, QSignalBlocker, Slot
 import numpy as np
 
 
@@ -77,6 +77,7 @@ class ThresholdPanel(base_panel.BaseDockPanel[Optional[ThresholdConfig]]):
         self.threshold_spinbox.valueChanged.connect(self._on_threshold_change)
         self.cancel_threshold_button.clicked.connect(self._clear_threshold)
 
+    @Slot()
     def _show_selection_menu(self) -> None:
         menu = QtWidgets.QMenu(self, title="Select thresholding operation")
         for config in THRESHOLD_CONFIGS:
@@ -89,6 +90,7 @@ class ThresholdPanel(base_panel.BaseDockPanel[Optional[ThresholdConfig]]):
         )
         menu.exec(global_position)
 
+    @Slot(ThresholdConfig)
     def _create_threshold_form(self, config: ThresholdConfig) -> None:
 
         self._base_config = config
@@ -98,12 +100,14 @@ class ThresholdPanel(base_panel.BaseDockPanel[Optional[ThresholdConfig]]):
         self.threshold_form.show()
         self._on_threshold_change()
 
+    @Slot()
     def _clear_threshold(self) -> None:
         self._base_config = None
         self.threshold_form.hide()
         self.add_threshold_button.show()
         self._on_threshold_change()
 
+    @Slot()
     def _on_threshold_change(self) -> None:
         self.threshold_rule_changed.emit(self.get_config())
 

@@ -1,6 +1,6 @@
 from PySide6 import QtWidgets
 from typing import TYPE_CHECKING, Any, TypeVar, Generic
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Slot, Qt
 
 if TYPE_CHECKING:
     from data_explorer.docks.array_dock import ArrayDock
@@ -82,6 +82,7 @@ class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
     def get_parent_dock(self) -> "ArrayDock":
         return self._parent_dock
 
+    @Slot(bool)
     def on_toggle_visibility(self, visible: bool) -> None:
         self._buttons.setVisible(visible)
         self._panel_body.setVisible(visible)

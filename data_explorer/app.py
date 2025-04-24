@@ -4,8 +4,8 @@ from typing import List, Optional, Sequence
 
 import numpy as np
 import PySide6.QtWidgets as widgets
-from PySide6.QtCore import Qt, QTimer, Signal, QSignalBlocker, QRectF
-from PySide6.QtGui import QKeyEvent, QKeySequence, QShortcut
+from PySide6.QtCore import Qt, QTimer, Signal, QSignalBlocker, Slot
+from PySide6.QtGui import QKeySequence, QShortcut
 from data_explorer.docks.array_dock import ArrayDock, OperationPanel
 
 
@@ -65,6 +65,7 @@ class ArrayViewerApp(widgets.QMainWindow):
                 f"Array provided has shape {array.shape}, but it must be same as others ({self._enforced_shape})."
             )
 
+    @Slot(ArrayDock)
     def _sync_view_to(self, dock: ArrayDock) -> None:
         if not self.sync_view_checkbox.isChecked() or self._is_syncing_view:
             return
@@ -110,6 +111,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         self._add_array(array, title, is_derived=False)
         return self
 
+    @Slot()
     def on_num_array_changed(self) -> None:
         has_enough_data = len(self.get_original_docks()) >= 2
         self.operation_panel.setEnabled(has_enough_data)
@@ -119,11 +121,13 @@ class ArrayViewerApp(widgets.QMainWindow):
             else ""
         )
 
+    @Slot(ArrayDock)
     def _remove_dock(self, dock: ArrayDock) -> None:
         self.docks.remove(dock)
         self.dock_instances[dock.get_title()] -= 1
         self.num_array_changed.emit()
 
+    @Slot(ArrayDock)
     def duplicate_dock(self, dock: ArrayDock) -> None:
         new_dock = self._add_array(
             dock.get_array(), title=dock.get_title(), is_derived=False
@@ -150,7 +154,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.slider.setPageStep(1)
         self.slider.valueChanged.connect(self.update_frames)
 
-        self.play_button = widgets.QPushButton("Play")
+        self.play_button: widgets.QPushButton = widgets.QPushButton("Play")
         self.play_button.setCheckable(True)
         self.play_button.clicked.connect(self.toggle_play)
 
@@ -159,7 +163,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.fps_spinner.setValue(20)
         self.fps_spinner.setSuffix(" fps")
 
-        self.crosshair_cb = widgets.QCheckBox("Crosshair")
+        self.crosshair_cb: widgets.QCheckBox = widgets.QCheckBox("Crosshair")
         self.crosshair_cb.setChecked(True)
         self.crosshair_cb.setToolTip("Show/hide the crosshair and value overlays")
         self.crosshair_cb.stateChanged.connect(self.toggle_crosshair_visbility)
@@ -170,7 +174,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.frame_spin.setFixedWidth(60)
         self.frame_spin.valueChanged.connect(lambda i: self.slider.setValue(i))
 
-        self.sync_view_checkbox = widgets.QCheckBox("Sync view")
+        self.sync_view_checkbox: widgets.QCheckBox = widgets.QCheckBox("Sync view")
         self.sync_view_checkbox.setToolTip("Synchronise pan and zoom across all docks.")
         self.sync_view_checkbox.setChecked(True)
 
@@ -190,7 +194,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         footer = widgets.QWidget()
         footer.setStyleSheet("background-color: #2b2b2b;")
 
-        self.operation_panel = OperationPanel(self)
+        self.operation_panel: OperationPanel = OperationPanel(self)
 
         footer_layout = widgets.QVBoxLayout(footer)
 
@@ -203,10 +207,12 @@ class ArrayViewerApp(widgets.QMainWindow):
         )
         self.central.setFixedHeight(self.central.sizeHint().height())
 
+    @Slot(Qt.CheckState)
     def toggle_crosshair_visbility(self, state: Qt.CheckState) -> None:
         for dock in self.docks:
             dock.set_crosshair_visbility(state == Qt.CheckState.Checked.value)
 
+    @Slot(int)
     def update_frames(self, frame: int) -> None:
         with QSignalBlocker(self.frame_spin):
             self.frame_spin.setValue(frame)
@@ -220,10 +226,12 @@ class ArrayViewerApp(widgets.QMainWindow):
         else:
             self.timer.stop()
 
+    @Slot()
     def advance_frame(self) -> None:
         frame = (self.slider.value() + 1) % self.num_frames
         self.slider.setValue(frame)
 
+    @Slot(float, float)
     def broadcast_cursor(self, x: float, y: float) -> None:
         for dock in self.docks:
             dock.sync_crosshair(x, y)

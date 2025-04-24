@@ -2,7 +2,7 @@ import dataclasses
 from typing import Final
 from data_explorer.docks.panels import base_panel
 from PySide6 import QtWidgets
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Slot
 import numpy as np
 
 
@@ -78,6 +78,7 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
         self.vmin_spinbox.setValue(config.vmin)
         self.vmax_spinbox.setValue(config.vmax)
 
+    @Slot()
     def _set_to_data_range(self) -> None:
         parent_array = self.get_parent_dock().get_array()
         data_vmin = np.nanmin(parent_array)
