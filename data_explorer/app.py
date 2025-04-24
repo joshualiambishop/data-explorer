@@ -4,7 +4,7 @@ from typing import List, Optional, Sequence
 
 import numpy as np
 import PySide6.QtWidgets as widgets
-from PySide6.QtCore import Qt, QTimer, Signal, QSignalBlocker
+from PySide6.QtCore import Qt, QTimer, Signal, QSignalBlocker, QRectF
 from PySide6.QtGui import QKeyEvent, QKeySequence, QShortcut
 from data_explorer.docks.array_dock import ArrayDock, OperationPanel
 
@@ -65,6 +65,14 @@ class ArrayViewerApp(widgets.QMainWindow):
                 f"Array provided has shape {array.shape}, but it must be same as others ({self._enforced_shape})."
             )
 
+    def _sync_view_to(self, dock: ArrayDock) -> None:
+        if not self.sync_view_checkbox.isChecked():
+            return
+        for other_dock in self.docks:
+            if other_dock is not dock:
+                with QSignalBlocker(other_dock.view_box):
+                    other_dock.view_box.setRange(dock.view_box.viewRect())
+
     def _add_array(self, array: np.ndarray, title: str, is_derived: bool) -> ArrayDock:
         self._validate_shape_of(array)
         self.dock_instances[title] = self.dock_instances.get(title, 0) + 1
@@ -82,6 +90,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         dock.update_cursor_signal.connect(self.broadcast_cursor)
         dock.create_duplicate_signal.connect(self.duplicate_dock)
         dock.close_signal.connect(self._remove_dock)
+        dock.view_box.sigRangeChanged.connect(lambda *_args: self._sync_view_to(dock))
 
         self.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dock)
         dock.setAllowedAreas(
@@ -156,6 +165,9 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.frame_spin.setFixedWidth(60)
         self.frame_spin.valueChanged.connect(lambda i: self.slider.setValue(i))
 
+        self.sync_view_checkbox = widgets.QCheckBox("Sync view")
+        self.sync_view_checkbox.setToolTip("Synchronise pan and zoom across all docks.")
+
         control_layout = widgets.QVBoxLayout(self.central)
         control_row = widgets.QHBoxLayout()
         control_row.addWidget(widgets.QLabel("Frame:"))
@@ -165,6 +177,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         control_row.addWidget(widgets.QLabel("FPS:"))
         control_row.addWidget(self.fps_spinner)
         control_row.addWidget(self.crosshair_cb)
+        control_row.addWidget(self.sync_view_checkbox)
 
         control_layout.addLayout(control_row)
 
