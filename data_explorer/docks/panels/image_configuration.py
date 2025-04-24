@@ -52,8 +52,9 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
             top_level_layout.addWidget(QtWidgets.QLabel(label))
             top_level_layout.addWidget(widget)
 
-        self.reset_button = QtWidgets.QPushButton("<>")
+        self.reset_button = QtWidgets.QPushButton("Auto")
         self.reset_button.clicked.connect(self._set_to_data_range)
+        self.reset_button.setToolTip("Reset min/max to full data range")
         top_level_layout.addWidget(self.reset_button)
 
     def _connect_signals(self) -> None:
