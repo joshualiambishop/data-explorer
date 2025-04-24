@@ -10,19 +10,31 @@ Config_T = TypeVar("Config_T")
 
 
 class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
+    """
+    Base class for panels that live under an ArrayDock.
+
+    Panels may represent data transformations tool, or extra
+    visualisations that are inherently tethered to a single piece of data.
+
+    The base class implements the general master format, which includes a place
+    for the panel itself to live, and buttons for copy and paste to transfer
+    configurations easily to other docks.
+    """
 
     panel_name: str
 
     def __init__(self, parent_dock: "ArrayDock") -> None:
-        super().__init__(self.panel_name, parent_dock)
-        self.setCheckable(True)
-        self.setChecked(False)
-        self.setFlat(True)
+        super().__init__(
+            title=self.panel_name,
+            parent=parent_dock,
+            checkable=True,  # used for open/closed
+            checked=False,  # start closed
+            flat=True,  # don't show the border
+        )
+        self._parent_dock = parent_dock
 
         main_layout = QtWidgets.QHBoxLayout(self)
         self.toggled.connect(self.on_toggle_visibility)
-
-        self._parent_dock = parent_dock
 
         # Body to be overridden by subclasses
         self._panel_body = QtWidgets.QWidget(self)
@@ -73,4 +85,4 @@ class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
 
     def set_config(self, config: Config_T) -> None:
         """Set method for copy and pasting / duplicating configs"""
-        raise NotImplementedError()
+        raise NotImplementedError

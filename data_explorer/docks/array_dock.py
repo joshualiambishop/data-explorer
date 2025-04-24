@@ -6,7 +6,7 @@ from PySide6.QtCore import QPointF, Qt, Signal
 from PySide6.QtGui import QCloseEvent
 
 import numpy as np
-from data_explorer import custom_widgets
+from data_explorer import qt_extensions
 from data_explorer.docks.panels.image_configuration import (
     ImageConfig,
     ImageConfigurationPanel,
@@ -220,7 +220,7 @@ class ArrayDock(widgets.QDockWidget):
         self.main_widget.setLayout(layout)
 
         self.image_item = pg.ImageItem()
-        self.view_box = custom_widgets.UserSyncViewBox(lockAspect=True)
+        self.view_box = qt_extensions.UserSyncViewBox(lockAspect=True)
         self.layout_widget.ci.addItem(self.view_box)
         self.view_box.addItem(self.image_item)
 
