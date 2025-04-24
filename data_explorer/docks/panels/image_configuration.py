@@ -24,6 +24,7 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
     def _build_ui(self, parent: QtWidgets.QWidget) -> None:
         parent_dock = self.get_parent_dock()
         data_min, data_max = parent_dock.get_array_bounds()
+
         step_size = parent_dock.get_appropriate_step_size()
 
         top_level_layout = QtWidgets.QHBoxLayout(parent)
@@ -37,6 +38,7 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
         for spinbox in (self.vmin_spinbox, self.vmax_spinbox):
             spinbox.setDecimals(3)
             spinbox.setSingleStep(step_size)
+            spinbox.setRange(-np.inf, np.inf)
 
         self.vmin_spinbox.setValue(data_min)
         self.vmax_spinbox.setValue(data_max)
