@@ -1,5 +1,5 @@
 from PySide6 import QtWidgets
-from typing import TYPE_CHECKING, TypeVar, Generic
+from typing import TYPE_CHECKING, Any, TypeVar, Generic
 from PySide6.QtCore import Signal, Qt
 
 if TYPE_CHECKING:
@@ -10,6 +10,9 @@ Config_T = TypeVar("Config_T")
 
 
 class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
+
+    PANEL_REGISTRY: dict[str, type["BaseDockPanel[Any]"]] = {}
+
     """
     Base class for panels that live under an ArrayDock.
 
@@ -22,6 +25,19 @@ class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
     """
 
     panel_name: str
+
+    def __init_subclass__(cls: type["BaseDockPanel[Config_T]"], **kwargs: Any) -> None:
+        super(BaseDockPanel, cls).__init_subclass__(**kwargs)
+
+        # Can't mix in abc.ABC with QWidgets so this will have to do...
+        for func_name in ("_build_ui", "_connect_signals", "get_config", "set_config"):
+            if getattr(cls, func_name) is getattr(BaseDockPanel, func_name):
+                raise TypeError(f"{cls.__name__} must override `{func_name}()`")
+
+        if not hasattr(cls, "panel_name") or not isinstance(cls.panel_name, str):
+            raise TypeError(f"{cls.__name__}.panel_name must be a string")
+
+        BaseDockPanel.PANEL_REGISTRY[cls.panel_name] = cls
 
     def __init__(self, parent_dock: "ArrayDock") -> None:
         super().__init__(
@@ -85,4 +101,4 @@ class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
 
     def set_config(self, config: Config_T) -> None:
         """Set method for copy and pasting / duplicating configs"""
-        raise NotImplementedError
+        raise NotImplementedError()

@@ -72,10 +72,10 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
             vmax=self.vmax_spinbox.value(),
         )
 
-    # def set_config(self, config: ImageConfig) -> None:
-    #     self.cmap_combo_box.setCurrentText(config.cmap)
-    #     self.vmin_spinbox.setValue(config.vmin)
-    #     self.vmax_spinbox.setValue(config.vmax)
+    def set_config(self, config: ImageConfig) -> None:
+        self.cmap_combo_box.setCurrentText(config.cmap)
+        self.vmin_spinbox.setValue(config.vmin)
+        self.vmax_spinbox.setValue(config.vmax)
 
     def _set_to_data_range(self) -> None:
         parent_array = self.get_parent_dock().get_array()
