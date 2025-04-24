@@ -17,6 +17,8 @@ class ImageConfig:
 
 
 class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
+    """Panel providing controls to adjust the colormap and value range of an image display."""
+
     panel_name = "Image Configuration"
 
     config_changed = Signal(object)
