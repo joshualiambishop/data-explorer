@@ -1,6 +1,6 @@
 from PySide6 import QtWidgets
 from typing import TYPE_CHECKING, TypeVar, Generic
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 
 if TYPE_CHECKING:
     from data_explorer.docks.array_dock import ArrayDock
@@ -21,17 +21,51 @@ class BaseDockPanel(QtWidgets.QWidget, Generic[Config_T]):
         header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(4)
 
-        label = QtWidgets.QLabel(self.panel_name)
-        label.setStyleSheet("font-weight: bold;")
-        header.addWidget(label, stretch=1)
+        self._toggle_button = QtWidgets.QToolButton()
+        self._toggle_button.setCheckable(True)
+        self._toggle_button.setChecked(False)
+        self._toggle_button.setArrowType(Qt.ArrowType.RightArrow)
 
-        self._build_ui()
+        label = QtWidgets.QLabel(self.panel_name)
+
+        self._copy_button = QtWidgets.QPushButton("⧉")
+        self._paste_button = QtWidgets.QPushButton("⇩")
+
+        header.addWidget(self._toggle_button)
+        header.addWidget(label, stretch=1)
+        for button in (
+            self._copy_button,
+            self._paste_button,
+        ):
+            button.setFixedSize(20, 20)
+            header.addWidget(button, stretch=0, alignment=Qt.AlignmentFlag.AlignRight)
+
+        # Body to be overridden by subclasses
+        self._panel_body = QtWidgets.QWidget(self)
+        self._panel_body.setVisible(False)
+
+        main = QtWidgets.QVBoxLayout(self)
+        main.setContentsMargins(0, 0, 0, 0)
+        main.setSpacing(2)
+        main.addLayout(header)
+        main.addWidget(self._panel_body)
+
+        self._toggle_button.toggled.connect(self.on_toggle_visbility)
+
+        self._build_ui(self._panel_body)
+
         self._connect_signals()
 
     def get_parent_dock(self) -> "ArrayDock":
         return self._parent_dock
 
-    def _build_ui(self) -> None:
+    def on_toggle_visbility(self, visible: bool) -> None:
+        self._panel_body.setVisible(visible)
+        self._toggle_button.setArrowType(
+            Qt.ArrowType.DownArrow if visible else Qt.ArrowType.RightArrow
+        )
+
+    def _build_ui(self, parent: QtWidgets.QWidget) -> None:
         """For neateness, a method for building the UI elements only."""
         raise NotImplementedError()
 

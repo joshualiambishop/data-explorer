@@ -256,30 +256,35 @@ class ArrayDock(widgets.QDockWidget):
 
     def _build_control_panel(self, parent_layout: widgets.QVBoxLayout) -> None:
 
-        grid = widgets.QGridLayout()
+        layout = widgets.QVBoxLayout()
+
+        misc_controls = widgets.QFrame()
+        misc_layout = widgets.QHBoxLayout(misc_controls)
+
+        self.reset_view_btn = widgets.QPushButton("Reset View")
+        self.reset_view_btn.setToolTip("Reset pan/zoom to show the full image")
+        self.reset_view_btn.clicked.connect(self.on_reset_view)
+        misc_layout.addWidget(self.reset_view_btn)
+
+        if not self.is_copy:
+            self.duplicate_button = widgets.QPushButton("Duplicate")
+            self.duplicate_button.clicked.connect(self.on_duplicate_pressed)
+            misc_layout.addWidget(self.duplicate_button)
+
         self.image_config_panel = ImageConfigurationPanel(self)
         self.image_config_panel.config_changed.connect(self._apply_image_config)
         self._apply_image_config(self.image_config_panel.get_config())
-        grid.addWidget(self.image_config_panel, 0, 0, 1, 4)
 
         self.threshold_panel = ThresholdPanel(self)
         self.threshold_panel.threshold_rule_changed.connect(
             self._on_threshold_rule_changed
         )
 
-        grid.addWidget(self.threshold_panel, 2, 0, 1, 3)
+        layout.addWidget(misc_controls)
+        layout.addWidget(self.image_config_panel)
+        layout.addWidget(self.threshold_panel)
 
-        self.reset_view_btn = widgets.QPushButton("Reset View")
-        self.reset_view_btn.setToolTip("Reset pan/zoom to show the full image")
-        self.reset_view_btn.clicked.connect(self.on_reset_view)
-        grid.addWidget(self.reset_view_btn, 1, 0)
-
-        if not self.is_copy:
-            self.duplicate_button = widgets.QPushButton("Duplicate")
-            self.duplicate_button.clicked.connect(self.on_duplicate_pressed)
-            grid.addWidget(self.duplicate_button, 1, 1, 1, 3)
-
-        parent_layout.addLayout(grid)
+        parent_layout.addLayout(layout)
 
     def _on_threshold_rule_changed(self, rule: Optional[ThresholdConfig]) -> None:
         if rule is not None:

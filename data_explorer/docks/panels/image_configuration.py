@@ -21,14 +21,12 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
 
     config_changed = Signal(object)
 
-    def _build_ui(self) -> None:
+    def _build_ui(self, parent: QtWidgets.QWidget) -> None:
         parent_dock = self.get_parent_dock()
         data_min, data_max = parent_dock.get_array_bounds()
         step_size = parent_dock.get_appropriate_step_size()
 
-        top_level_layout = QtWidgets.QVBoxLayout(self)
-        group = QtWidgets.QGroupBox(self.panel_name)
-        hbox_layout = QtWidgets.QHBoxLayout(group)
+        top_level_layout = QtWidgets.QHBoxLayout(parent)
 
         self.cmap_combo_box = QtWidgets.QComboBox()
         self.cmap_combo_box.addItems(COLOURMAPS)
@@ -50,14 +48,12 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
             ("Maximum:", self.vmax_spinbox),
         ):
 
-            hbox_layout.addWidget(QtWidgets.QLabel(label))
-            hbox_layout.addWidget(widget)
+            top_level_layout.addWidget(QtWidgets.QLabel(label))
+            top_level_layout.addWidget(widget)
 
         self.reset_button = QtWidgets.QPushButton("<>")
         self.reset_button.clicked.connect(self._set_to_data_range)
-        hbox_layout.addWidget(self.reset_button)
-
-        top_level_layout.addWidget(group)
+        top_level_layout.addWidget(self.reset_button)
 
     def _connect_signals(self) -> None:
         self.vmin_spinbox.valueChanged.connect(self._on_config_changed)

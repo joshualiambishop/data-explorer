@@ -34,13 +34,13 @@ class ThresholdPanel(base_panel.BaseDockPanel[Optional[ThresholdConfig]]):
 
     threshold_rule_changed = Signal(object)
 
-    def _build_ui(self) -> None:
+    def _build_ui(self, parent: QtWidgets.QWidget) -> None:
         parent_dock = self.get_parent_dock()
         data_min, data_max = parent_dock.get_array_bounds()
         step_size = parent_dock.get_appropriate_step_size()
 
         self._base_config: Optional[ThresholdConfig] = None
-        top_level_layout = QtWidgets.QVBoxLayout(self)
+        top_level_layout = QtWidgets.QVBoxLayout(parent)
 
         self.add_threshold_button = QtWidgets.QPushButton("Add thresholding rule")
         self.add_threshold_button.setToolTip(
