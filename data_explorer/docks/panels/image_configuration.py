@@ -35,7 +35,6 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
         self.vmax_spinbox = QtWidgets.QDoubleSpinBox()
 
         for spinbox in (self.vmin_spinbox, self.vmax_spinbox):
-            spinbox.setRange(data_min, data_max)
             spinbox.setDecimals(3)
             spinbox.setSingleStep(step_size)
 
