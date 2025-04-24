@@ -21,7 +21,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.num_frames = arrays[0].shape[0]
         self.docks: List[ArrayDock] = []
         self.dock_instances: dict[str, int] = {}
-
+        self._is_syncing_view: bool = False
         self._init_ui()
         self._register_keyboard_shortcuts()
         self.num_array_changed.connect(self.on_num_array_changed)
@@ -66,12 +66,15 @@ class ArrayViewerApp(widgets.QMainWindow):
             )
 
     def _sync_view_to(self, dock: ArrayDock) -> None:
-        if not self.sync_view_checkbox.isChecked():
+        if not self.sync_view_checkbox.isChecked() or self._is_syncing_view:
             return
+
+        self._is_syncing_view = True
         for other_dock in self.docks:
             if other_dock is not dock:
                 with QSignalBlocker(other_dock.view_box):
                     other_dock.view_box.setRange(dock.view_box.viewRect())
+        self._is_syncing_view = False
 
     def _add_array(self, array: np.ndarray, title: str, is_derived: bool) -> ArrayDock:
         self._validate_shape_of(array)
