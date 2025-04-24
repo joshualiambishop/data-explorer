@@ -11,7 +11,7 @@ from data_explorer.docks.array_dock import ArrayDock, OperationPanel
 
 class ArrayViewerApp(widgets.QMainWindow):
 
-    new_array_added = Signal()
+    num_array_changed = Signal()
 
     def __init__(self, arrays: Sequence[np.ndarray], titles: Sequence[str]) -> None:
         super().__init__()
@@ -24,7 +24,7 @@ class ArrayViewerApp(widgets.QMainWindow):
 
         self._init_ui()
 
-        self.new_array_added.connect(self.on_new_array_added)
+        self.num_array_changed.connect(self.on_num_array_changed)
         for array, title in zip(arrays, titles):
             self.register_array(array, title)
 
@@ -65,14 +65,14 @@ class ArrayViewerApp(widgets.QMainWindow):
             | Qt.DockWidgetArea.RightDockWidgetArea
             | Qt.DockWidgetArea.LeftDockWidgetArea
         )
-        self.new_array_added.emit()
+        self.num_array_changed.emit()
         return dock
 
     def register_array(self, array: np.ndarray, title: str) -> "ArrayViewerApp":
         self._add_array(array, title, is_derived=False)
         return self
 
-    def on_new_array_added(self) -> None:
+    def on_num_array_changed(self) -> None:
         has_enough_data = len(self.get_original_docks()) >= 2
         self.operation_panel.setEnabled(has_enough_data)
         self.operation_panel.setToolTip(
@@ -84,6 +84,7 @@ class ArrayViewerApp(widgets.QMainWindow):
     def _remove_dock(self, dock: ArrayDock) -> None:
         self.docks.remove(dock)
         self.dock_instances[dock.get_title()] -= 1
+        self.num_array_changed.emit()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
 
