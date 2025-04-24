@@ -165,9 +165,7 @@ class ArrayDock(widgets.QDockWidget):
     def __init__(
         self, array: np.ndarray, title: str, instance_number: int, is_derived: bool
     ) -> None:
-        if array.ndim != 3:
-            raise ValueError("Must be a 3 dimensional array (time, y, x).")
-
+        self.safety_check_data(array)
         super().__init__(
             title if instance_number == 1 else title + f" ({instance_number})"
         )
@@ -191,6 +189,13 @@ class ArrayDock(widgets.QDockWidget):
         self.setFeatures(features)
         self._init_ui()
         self.set_frame(0)
+
+    @staticmethod
+    def safety_check_data(array: np.ndarray) -> None:
+        if array.ndim != 3:
+            raise ValueError("Array must be a 3-dimensional (time, y, x).")
+        if not np.isfinite(array).any():
+            raise ValueError("Array must contain finite values.")
 
     def get_title(self) -> str:
         return self._title
