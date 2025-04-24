@@ -51,12 +51,11 @@ class ArrayViewerApp(widgets.QMainWindow):
                 lambda: self.crosshair_cb.setChecked(not self.crosshair_cb.isChecked()),
             ),
         ]:
-            shortcut = QShortcut(
+            QShortcut(
                 QKeySequence(key),
                 self,
                 context=Qt.ShortcutContext.ApplicationShortcut,
-            )
-            shortcut.activated.connect(action)
+            ).activated.connect(action)
 
     def _validate_shape_of(self, array: np.ndarray) -> None:
         if self._enforced_shape is None:
