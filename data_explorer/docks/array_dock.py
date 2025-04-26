@@ -8,6 +8,7 @@ from PySide6.QtGui import QCloseEvent
 
 import numpy as np
 from data_explorer import qt_extensions
+from data_explorer.docks.panels.base_panel import BaseDockPanel
 from data_explorer.docks.panels.image_configuration import (
     ImageConfig,
     ImageConfigurationPanel,
@@ -166,6 +167,8 @@ class ArrayDock(widgets.QDockWidget):
     update_cursor_signal = Signal(float, float)
     create_duplicate_signal = Signal(object)  # self
     close_signal = Signal(object)  # self
+    panel_copy_requested = Signal(BaseDockPanel)
+    panel_paste_requested = Signal(BaseDockPanel)
 
     def __init__(
         self, array: np.ndarray, title: str, instance_number: int, is_derived: bool

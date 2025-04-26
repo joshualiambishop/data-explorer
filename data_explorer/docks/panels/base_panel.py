@@ -1,6 +1,6 @@
 from PySide6 import QtWidgets
 from typing import TYPE_CHECKING, Any, TypeVar, Generic
-from PySide6.QtCore import Slot, Qt
+from PySide6.QtCore import Slot, Qt, Signal
 
 if TYPE_CHECKING:
     from data_explorer.docks.array_dock import ArrayDock
@@ -25,6 +25,8 @@ class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
     """
 
     panel_name: str
+    copy_requested = Signal(object)  # self
+    paste_requested = Signal(object)  # self
 
     def __init_subclass__(cls: type["BaseDockPanel[Config_T]"], **kwargs: Any) -> None:
         super(BaseDockPanel, cls).__init_subclass__(**kwargs)
@@ -59,7 +61,9 @@ class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
         self._build_ui(self._panel_body)
 
         self._copy_button = QtWidgets.QPushButton("⧉")
+        self._copy_button.clicked.connect(lambda *_: self.copy_requested.emit(self))
         self._paste_button = QtWidgets.QPushButton("⇩")
+        self._paste_button.clicked.connect(lambda *_: self.paste_requested.emit(self))
 
         self._buttons = QtWidgets.QWidget()
         button_layout = QtWidgets.QVBoxLayout(self._buttons)
