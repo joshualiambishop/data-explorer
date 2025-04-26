@@ -67,9 +67,9 @@ class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
         self._build_ui(self._panel_body)
 
         self._copy_button = QtWidgets.QPushButton("⧉")
-        self._copy_button.clicked.connect(lambda *_: self.copy_requested.emit(self))
+        self._copy_button.clicked.connect(self._on_copy_pressed)
         self._paste_button = QtWidgets.QPushButton("⇩")
-        self._paste_button.clicked.connect(lambda *_: self.paste_requested.emit(self))
+        self._paste_button.clicked.connect(self._on_paste_pressed)
 
         self._buttons = QtWidgets.QWidget()
         button_layout = QtWidgets.QVBoxLayout(self._buttons)
@@ -89,10 +89,19 @@ class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
 
         self._connect_internal_signals()
         self._connect_to_dock()
+
         self.set_visibility(False)
 
     def get_parent_dock(self) -> "ArrayDock":
         return self._parent_dock
+
+    def _on_copy_pressed(self) -> None:
+        parent = self.get_parent_dock()
+        parent.panel_copy_requested.emit(self)
+
+    def _on_paste_pressed(self) -> None:
+        parent = self.get_parent_dock()
+        parent.panel_paste_requested.emit(self)
 
     @Slot(bool)
     def set_visibility(self, visible: bool) -> None:

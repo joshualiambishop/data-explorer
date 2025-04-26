@@ -1,12 +1,17 @@
 import multiprocessing
 import sys
-from typing import List, Optional, Sequence
+from typing import Final, List, Optional, Sequence
 
 import numpy as np
 import PySide6.QtWidgets as widgets
 from PySide6.QtCore import Qt, QTimer, Signal, QSignalBlocker, Slot
 from PySide6.QtGui import QKeySequence, QShortcut
 from data_explorer.docks.array_dock import ArrayDock, OperationPanel
+from data_explorer.docks.panels.base_panel import BaseDockPanel
+
+import logging
+
+LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 class ArrayViewerApp(widgets.QMainWindow):
@@ -22,6 +27,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         self.docks: List[ArrayDock] = []
         self.dock_instances: dict[str, int] = {}
         self._is_syncing_view: bool = False
+        self._panel_config_clipboard: Optional[object] = None
         self._init_ui()
         self._register_keyboard_shortcuts()
         self.num_array_changed.connect(self.on_num_array_changed)
@@ -97,6 +103,8 @@ class ArrayViewerApp(widgets.QMainWindow):
         dock.view_box.user_changed_view.connect(
             lambda dock_to_align=dock: self._sync_view_to(dock_to_align)
         )
+        dock.panel_copy_requested.connect(self._on_config_copied)
+        dock.panel_paste_requested.connect(self._on_config_paste)
 
         self.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dock)
         dock.setAllowedAreas(
@@ -139,6 +147,31 @@ class ArrayViewerApp(widgets.QMainWindow):
 
         new_dock.threshold_panel.set_config(dock.threshold_panel.get_config())
         new_dock.threshold_panel.set_visibility(dock.threshold_panel.get_visbility())
+
+    def _on_config_copied(self, sender_panel: BaseDockPanel) -> None:
+        if self._panel_config_clipboard is not None:
+            LOGGER.warning(
+                f"{sender_panel.panel_name} requested copy but clipboard is occupied."
+            )
+            return
+
+        self._panel_config_clipboard = sender_panel.get_config()
+
+    def _on_config_paste(self, reciever_panel: BaseDockPanel) -> None:
+
+        reciever_name = reciever_panel.panel_name
+        reciever_config_type = type(reciever_panel.get_config())
+        sender_config_type = type(self._panel_config_clipboard)
+
+        if self._panel_config_clipboard is None:
+            LOGGER.warning(f"{reciever_name} requested paste but clipboard is empty.")
+        elif reciever_config_type != sender_config_type:
+            LOGGER.warning(
+                f"{reciever_name} requested paste, but clipboard config is type {sender_config_type} - {reciever_name} expects {reciever_config_type}"
+            )
+        else:
+            reciever_panel.set_config(self._panel_config_clipboard)
+            self._panel_config_clipboard = None
 
     def get_original_docks(self) -> list[ArrayDock]:
         return [dock for dock in self.docks if not dock.is_copy]
