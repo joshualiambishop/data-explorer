@@ -32,7 +32,13 @@ class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
         super(BaseDockPanel, cls).__init_subclass__(**kwargs)
 
         # Can't mix in abc.ABC with QWidgets so this will have to do...
-        for func_name in ("_build_ui", "_connect_signals", "get_config", "set_config"):
+        for func_name in (
+            "_build_ui",
+            "_connect_internal_signals",
+            "get_config",
+            "set_config",
+            "_connect_to_dock",
+        ):
             if getattr(cls, func_name) is getattr(BaseDockPanel, func_name):
                 raise TypeError(f"{cls.__name__} must override `{func_name}()`")
 
@@ -81,7 +87,8 @@ class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
             self._buttons,
         )
 
-        self._connect_signals()
+        self._connect_internal_signals()
+        self._connect_to_dock()
         self.set_visibility(False)
 
     def get_parent_dock(self) -> "ArrayDock":
@@ -98,17 +105,21 @@ class BaseDockPanel(QtWidgets.QGroupBox, Generic[Config_T]):
         return self._current_visbility
 
     def _build_ui(self, parent: QtWidgets.QWidget) -> None:
-        """For neateness, a method for building the UI elements only."""
+        """Build all UI elements only."""
         raise NotImplementedError()
 
-    def _connect_signals(self) -> None:
-        """For neatness, a method for connecting signals up"""
+    def _connect_internal_signals(self) -> None:
+        """Connect inter-panel signals."""
+        raise NotImplementedError()
+
+    def _connect_to_dock(self) -> None:
+        """Connect to parent signals."""
         raise NotImplementedError()
 
     def get_config(self) -> Config_T:
-        """Get method for copy and pasting / duplicating configs"""
+        """Get a config for state of panel."""
         raise NotImplementedError()
 
     def set_config(self, config: Config_T) -> None:
-        """Set method for copy and pasting / duplicating configs"""
+        """Set a config for state of panel."""
         raise NotImplementedError()

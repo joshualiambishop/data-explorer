@@ -72,10 +72,14 @@ class ThresholdPanel(base_panel.BaseDockPanel[Optional[ThresholdConfig]]):
         top_level_layout.addWidget(self.threshold_form)
         self.threshold_form.hide()
 
-    def _connect_signals(self) -> None:
+    def _connect_internal_signals(self) -> None:
         self.add_threshold_button.clicked.connect(self._show_selection_menu)
         self.threshold_spinbox.valueChanged.connect(self._on_threshold_change)
         self.cancel_threshold_button.clicked.connect(self._clear_threshold)
+
+    def _connect_to_dock(self) -> None:
+        parent_dock = self.get_parent_dock()
+        self.threshold_rule_changed.connect(parent_dock._on_threshold_rule_changed)
 
     @Slot()
     def _show_selection_menu(self) -> None:

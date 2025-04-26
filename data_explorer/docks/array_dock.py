@@ -285,13 +285,9 @@ class ArrayDock(widgets.QDockWidget):
             misc_layout.addWidget(self.duplicate_button)
 
         self.image_config_panel = ImageConfigurationPanel(self)
-        self.image_config_panel.config_changed.connect(self._apply_image_config)
         self._apply_image_config(self.image_config_panel.get_config())
 
         self.threshold_panel = ThresholdPanel(self)
-        self.threshold_panel.threshold_rule_changed.connect(
-            self._on_threshold_rule_changed
-        )
 
         layout.addWidget(misc_controls)
         layout.addWidget(self.image_config_panel)

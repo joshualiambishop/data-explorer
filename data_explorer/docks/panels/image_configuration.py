@@ -59,10 +59,14 @@ class ImageConfigurationPanel(base_panel.BaseDockPanel[ImageConfig]):
         self.reset_button.setToolTip("Reset min/max to full data range")
         top_level_layout.addWidget(self.reset_button)
 
-    def _connect_signals(self) -> None:
+    def _connect_internal_signals(self) -> None:
         self.vmin_spinbox.valueChanged.connect(self._on_config_changed)
         self.vmax_spinbox.valueChanged.connect(self._on_config_changed)
         self.cmap_combo_box.currentTextChanged.connect(self._on_config_changed)
+
+    def _connect_to_dock(self) -> None:
+        parent_dock = self.get_parent_dock()
+        self.config_changed.connect(parent_dock._apply_image_config)
 
     def _on_config_changed(self, _: float | str) -> None:
         self.vmin_spinbox.setMaximum(self.vmax_spinbox.value())
