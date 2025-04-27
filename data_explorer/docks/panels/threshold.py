@@ -4,15 +4,15 @@ from data_explorer.docks.panels import base_panel
 from PySide6 import QtWidgets
 from PySide6.QtCore import Signal, QSignalBlocker, Slot
 import numpy as np
-
+import numpy.typing as npt
 
 @dataclasses.dataclass(frozen=True)
 class ThresholdConfig:
     description: str
     threshold: float
-    threshold_func: Callable[[np.ndarray, float], np.ndarray]
+    threshold_func: Callable[[np.ndarray, float], npt.NDArray[np.bool_]]
 
-    def threshold_array(self, array: np.ndarray):
+    def threshold_array(self, array: np.ndarray) -> npt.NDArray[np.bool_]:
         return self.threshold_func(array, self.threshold)
 
 
