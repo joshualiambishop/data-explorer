@@ -32,7 +32,7 @@ class ArrayViewerApp(widgets.QMainWindow):
         self._register_keyboard_shortcuts()
         self.num_array_changed.connect(self.on_num_array_changed)
         for array, title in zip(arrays, titles):
-            self.register_array(array, title)
+            self._add_array(array, title, is_derived=False)
 
         self.update_frames(0)
         self.timer = QTimer()
@@ -114,10 +114,6 @@ class ArrayViewerApp(widgets.QMainWindow):
         )
         self.num_array_changed.emit()
         return dock
-
-    def register_array(self, array: np.ndarray, title: str) -> "ArrayViewerApp":
-        self._add_array(array, title, is_derived=False)
-        return self
 
     @Slot()
     def on_num_array_changed(self) -> None:
