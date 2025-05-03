@@ -83,7 +83,13 @@ class ArrayViewerApp(widgets.QMainWindow):
                     other_dock.view_box.setRange(dock.view_box.viewRect())
         self._is_syncing_view = False
 
-    def _add_array(self, array: np.ndarray, title: str, is_derived: bool) -> ArrayDock:
+    def _add_array(
+        self,
+        array: np.ndarray,
+        title: str,
+        is_derived: bool,
+        tab_with_previous: bool = False,
+    ) -> ArrayDock:
         self._validate_shape_of(array)
         self.dock_instances[title] = self.dock_instances.get(title, 0) + 1
         dock = ArrayDock(
@@ -112,6 +118,12 @@ class ArrayViewerApp(widgets.QMainWindow):
             | Qt.DockWidgetArea.RightDockWidgetArea
             | Qt.DockWidgetArea.LeftDockWidgetArea
         )
+        if tab_with_previous:
+            if len(self.docks) == 0:
+                raise ValueError("Cannot tab dock when there are no present.")
+            previous_dock = self.docks[-2]
+            self.tabifyDockWidget(previous_dock, dock)
+
         self.num_array_changed.emit()
         return dock
 
