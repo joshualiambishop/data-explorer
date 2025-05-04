@@ -14,7 +14,7 @@ import logging
 LOGGER: Final[logging.Logger] = logging.getLogger(__name__)
 
 
-class _ArrayViewerApp(widgets.QMainWindow):
+class ArrayViewerApp(widgets.QMainWindow):
 
     num_array_changed = Signal()
 
@@ -283,20 +283,10 @@ class _ArrayViewerApp(widgets.QMainWindow):
             dock.sync_crosshair(x, y)
 
 
-class FrameProvider:
-
-    def get_frame(self, index: int) -> np.ndarray: ...
-
-
-class ArrayViewerApp:
-    def __init__(self) -> None:
-        self._data: dict[str, FrameProvider] = {}
-
-
 def launch_viewer(arrays: Sequence[np.ndarray], titles: Sequence[str]) -> None:
     # reuse a running QApplication if present
     app = widgets.QApplication.instance() or widgets.QApplication(sys.argv)
-    viewer = _ArrayViewerApp(arrays, titles)
+    viewer = ArrayViewerApp(arrays, titles)
     viewer.setWindowTitle("3D Array Viewer")
     viewer.resize(1200, 800)
     viewer.show()
